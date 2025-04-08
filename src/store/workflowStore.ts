@@ -338,19 +338,64 @@ const useWorkflowStore = create<WorkflowState>((set, get) => ({
         set({ scheduleIntervals: new Map(scheduleIntervals) });
         updateNodeStatus(nodeId, 'success');
 
+      } else if (node.type === 'ifCondition') {
+        // --- Logique If Condition ---
+        console.log(`Évaluation de la condition pour ${nodeId}`);
+        console.log('Expression à évaluer:', node.data?.description);
+        
+        let conditionResult = false;
+        try {
+          // Évaluer l'expression si elle existe
+          if (node.data?.description) {
+            // Pour l'instant, on évalue directement l'expression
+            // Plus tard, on pourra ajouter un contexte avec des variables
+            const evalResult = eval(node.data.description);
+            console.log('Résultat brut de eval:', evalResult);
+            conditionResult = Boolean(evalResult);
+          } else {
+            console.log('Aucune expression à évaluer, utilisation de la valeur par défaut (true)');
+            conditionResult = true; // Par défaut, on va sur la branche true s'il n'y a pas d'expression
+          }
+        } catch (error) {
+          console.error(`Erreur d'évaluation de l'expression pour ${nodeId}:`, error);
+          updateNodeStatus(nodeId, 'error');
+          throw error;
+        }
+
+        console.log(`Résultat de la condition: ${conditionResult}`);
+        updateNodeStatus(nodeId, 'success');
+
+        // Trouver les arêtes sortantes avec l'ID correspondant au résultat
+        const outgoingEdges = edges.filter(e => 
+          e.source === nodeId && 
+          e.sourceHandle === (conditionResult ? 'true' : 'false')
+        );
+
+        // Exécuter les nœuds cibles de la branche choisie avec les données d'entrée
+        const inputData = node.data?.input || {};
+        for (const edge of outgoingEdges) {
+          // Trouver le nœud cible
+          const targetNode = nodes.find(n => n.id === edge.target);
+          if (targetNode) {
+            // Mettre à jour les données du nœud cible avec les données d'entrée
+            get().updateNodeData(targetNode.id, { ...targetNode.data, input: inputData });
+            await get().executeNode(edge.target, context);
+          }
+        }
+
       } else {
-         // --- Logique pour AUTRES Nœuds ---
-         console.log(`Exécution du nœud standard ${nodeId} (Type: ${node.type})`);
-         await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100)); // Simuler travail
+        // --- Logique pour AUTRES Nœuds ---
+        console.log(`Exécution du nœud standard ${nodeId} (Type: ${node.type})`);
+        await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100)); // Simuler travail
 
-         updateNodeStatus(nodeId, 'success');
+        updateNodeStatus(nodeId, 'success');
 
-         const outgoingEdges = edges.filter(e => e.source === nodeId);
-         const targetNodeIds = outgoingEdges.map(e => e.target);
+        const outgoingEdges = edges.filter(e => e.source === nodeId);
+        const targetNodeIds = outgoingEdges.map(e => e.target);
 
-         for (const targetId of targetNodeIds) {
-            await get().executeNode(targetId, context); // Propager le contexte
-         }
+        for (const targetId of targetNodeIds) {
+          await get().executeNode(targetId, context); // Propager le contexte
+        }
       }
 
     } catch (error) {

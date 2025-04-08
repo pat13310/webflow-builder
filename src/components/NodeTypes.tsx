@@ -1,6 +1,6 @@
 import React from 'react';
 import { Handle, Position } from 'reactflow';
-import { Zap, Globe, Database, Mail, GitBranch, Clock, Timer, Brain, Split, Bug, MousePointer, Hash, FileText } from 'lucide-react';
+import { Zap, Globe, Database, Mail, GitBranch, Clock, Timer, Brain, Split, Bug, MousePointer, Hash, FileText, Play } from 'lucide-react';
 import { NodeWrapper } from './NodeWrapper';
 import useWorkflowStore from '../store/workflowStore';
 import PushButton from './ui/PushButton';
@@ -210,40 +210,106 @@ const OutputNode = ({ id, data }: { id: string; data: { label: string; content?:
   );
 };
 
-const nodeTypes = {
-  webhook: (props: any) => (
-    <BaseNode {...props} icon={Zap} color="border-purple-500" label="Webhook" />
-  ),
-  schedule: (props: any) => (
-    <BaseNode {...props} icon={Clock} color="border-yellow-500" label="Schedule" hasInput={false} />
-  ),
-  httpRequest: (props: any) => (
-    <BaseNode {...props} icon={Globe} color="border-blue-500" label="HTTP Request" />
-  ),
-  database: (props: any) => (
-    <BaseNode {...props} icon={Database} color="border-green-500" label="Database" />
-  ),
-  email: (props: any) => (
-    <BaseNode {...props} icon={Mail} color="border-red-500" label="Email" />
-  ),
-  ifCondition: (props: any) => (
-    <BaseNode {...props} icon={GitBranch} color="border-indigo-500" label="If Condition" />
-  ),
-  wait: (props: any) => (
-    <BaseNode {...props} icon={Timer} color="border-pink-500" label="Wait" />
-  ),
-  aiAgent: (props: any) => (
-    <BaseNode {...props} icon={Brain} color="border-violet-500" label="AI Agent" />
-  ),
-  split: (props: any) => (
-    <BaseNode {...props} icon={Split} color="border-orange-500" label="Split" />
-  ),
-  debug: (props: any) => (
-    <BaseNode {...props} icon={Bug} color="border-gray-500" label="Debug" width="200px" />
-  ),
+const StartNode = (props: any) => (
+  <BaseNode {...props} icon={Play} color="border-yellow-500" label="Start" hasInput={false} />
+);
+
+const ScheduleNode = (props: any) => (
+  <BaseNode {...props} icon={Clock} color="border-yellow-500" label="Schedule" hasInput={false} />
+);
+
+const HttpRequestNode = (props: any) => (
+  <BaseNode {...props} icon={Globe} color="border-blue-500" label="HTTP Request" />
+);
+
+const DatabaseNode = (props: any) => (
+  <BaseNode {...props} icon={Database} color="border-green-500" label="Database" />
+);
+
+const EmailNode = (props: any) => (
+  <BaseNode {...props} icon={Mail} color="border-red-500" label="Email" />
+);
+
+const IfConditionNode = ({ id, data }: { id: string; data: { label: string; expression?: string } }) => {
+  const executingNodes = useWorkflowStore((state) => state.executingNodes);
+  const nodeStatuses = useWorkflowStore((state) => state.nodeStatuses);
+  const isExecuting = executingNodes.has(id);
+  const status = nodeStatuses.get(id)?.status || 'idle';
+
+  // Évaluer la condition si le nœud est en cours d'exécution
+  const conditionResult = React.useMemo(() => {
+    if (isExecuting && data.expression) {
+      try {
+        return Boolean(eval(data.expression));
+      } catch (error) {
+        console.error('Erreur d’évaluation:', error);
+        return false;
+      }
+    }
+    return null;
+  }, [isExecuting, data.expression]);
+
+  return (
+    <NodeWrapper nodeId={id} isExecuting={isExecuting} status={status}>
+      <div className="shadow-sm rounded-md bg-white dark:bg-gray-800 border-l-[3px] border-indigo-500 w-[88px] backdrop-blur-sm bg-opacity-95">
+        <div className="px-1.5 py-1">
+          <div className="flex items-center gap-1">
+            <div className="bg-indigo-500 bg-opacity-10 rounded-sm p-0.5">
+              <GitBranch className="h-2 w-2 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div className="text-3xs font-medium text-gray-900 dark:text-gray-100 truncate leading-none">{data.label}</div>
+          </div>
+        </div>
+        <Handle 
+          type="target" 
+          position={Position.Left} 
+          className="!w-[6px] !h-[6px] !bg-green-500 !-left-[7px]" 
+        />
+        <Handle 
+          type="source" 
+          position={Position.Right} 
+          className={`!w-[6px] !h-[6px] ${isExecuting ? (conditionResult === true ? '!bg-green-500 !ring-2 !ring-green-300' : '!bg-gray-400') : '!bg-green-500'} !-right-[7px] !top-[25%]`} 
+          id="true"
+        />
+        <Handle 
+          type="source" 
+          position={Position.Right} 
+          className={`!w-[6px] !h-[6px] ${isExecuting ? (conditionResult === false ? '!bg-red-500 !ring-2 !ring-red-300' : '!bg-gray-400') : '!bg-red-500'} !-right-[7px] !top-[75%]`} 
+          id="false"
+        />
+      </div>
+    </NodeWrapper>
+  );
+};
+
+const WaitNode = (props: any) => (
+  <BaseNode {...props} icon={Timer} color="border-pink-500" label="Wait" />
+);
+
+const AiAgentNode = (props: any) => (
+  <BaseNode {...props} icon={Brain} color="border-violet-500" label="AI Agent" />
+);
+
+const SplitNode = (props: any) => (
+  <BaseNode {...props} icon={Split} color="border-orange-500" label="Split" />
+);
+
+const DebugNode = (props: any) => (
+  <BaseNode {...props} icon={Bug} color="border-gray-500" label="Debug" width="200px" />
+);
+
+export const nodeTypes = {
+  start: StartNode,
+  schedule: ScheduleNode,
+  httpRequest: HttpRequestNode,
+  database: DatabaseNode,
+  email: EmailNode,
+  ifCondition: IfConditionNode,
+  wait: WaitNode,
+  aiAgent: AiAgentNode,
+  split: SplitNode,
+  debug: DebugNode,
   counter: CounterNode,
   pushButton: PushButtonNode,
   output: OutputNode,
 };
-
-export default nodeTypes;

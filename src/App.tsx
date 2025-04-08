@@ -16,7 +16,7 @@ import 'reactflow/dist/style.css';
 import Header from './components/Header.tsx';
 import Sidebar from './components/Sidebar.tsx';
 import PropertiesPanel from './components/PropertiesPanel.tsx';
-import nodeTypes from './components/NodeTypes.tsx';
+import { nodeTypes } from './components/NodeTypes.tsx';
 import useWorkflowStore from './store/workflowStore.ts';
 import { useTheme } from './hooks/useTheme.ts';
 
