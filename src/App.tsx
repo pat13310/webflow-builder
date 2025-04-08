@@ -32,7 +32,11 @@ function Flow() {
   const { nodes, edges, setNodes, setEdges, addNode, addEdge, updateNodeData, incrementNodeExecutionCounter } = useWorkflowStore();
 
   const onNodesChange = useCallback(
-    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    (changes: NodeChange[]) => {
+      // Éviter les mises à jour inutiles si les changements sont vides
+      if (changes.length === 0) return;
+      setNodes((nds) => applyNodeChanges(changes, nds));
+    },
     [setNodes]
   );
 

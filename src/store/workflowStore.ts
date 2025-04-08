@@ -14,8 +14,8 @@ interface WorkflowState {
   isExecuting: boolean; // Le workflow est-il globalement en cours d'exécution ?
 
   // Fonctions de base pour manipuler le graphe
-  setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void;
-  setEdges: (edges: Edge[] | ((edges: Edge[]) => Edge[])) => void;
+  setNodes: (nodes: Node[] | ((prev: Node[]) => Node[])) => void;
+  setEdges: (edges: Edge[] | ((prev: Edge[]) => Edge[])) => void;
   addNode: (node: Node) => void;
   addEdge: (edge: Edge) => void;
   duplicateNode: (nodeId: string) => void;
@@ -272,18 +272,21 @@ const useWorkflowStore = create<WorkflowState>((set, get) => ({
         return;
     }
     if (executingNodes.has(nodeId)) {
+      console.log(`executeNode: Nœud ${nodeId} déjà en cours d'exécution, évitement de boucle`);
       return; // Évite boucle simple
     }
 
-    // 2. Marquage et Statut
-    executingNodes.add(nodeId);
-    updateNodeStatus(nodeId, 'running'); // Appel interne
+    // Variable pour suivre si on doit continuer l'exécution
+    let shouldContinue = true;
 
     try {
+      // 2. Marquage et Statut
+      executingNodes.add(nodeId);
+      updateNodeStatus(nodeId, 'running'); // Appel interne
+
       // 3. Incrémentation du Compteur (si applicable)
-      // Appel interne correct de la fonction renommée
-      if (!context.isScheduled && node.type) {
-          incrementNodeExecutionCounter(node.type); // Appel interne
+      if (!context.isScheduled && node.type && shouldContinue) {
+        incrementNodeExecutionCounter(node.type); // Appel interne
       }
 
       // 4. Logique Spécifique au Type
@@ -386,7 +389,25 @@ const useWorkflowStore = create<WorkflowState>((set, get) => ({
       } else {
         // --- Logique pour AUTRES Nœuds ---
         console.log(`Exécution du nœud standard ${nodeId} (Type: ${node.type})`);
-        await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100)); // Simuler travail
+        
+        // Vérifier si on est toujours en cours d'exécution
+        if (!get().isExecuting) {
+          shouldContinue = false;
+          return;
+        }
+
+        await new Promise(resolve => {
+          const timeoutId = setTimeout(() => {
+            if (get().isExecuting) {
+              resolve(undefined);
+            }
+          }, 50 + Math.random() * 100);
+
+          // Nettoyer le timeout si l'exécution est arrêtée
+          return () => clearTimeout(timeoutId);
+        });
+
+        if (!shouldContinue || !get().isExecuting) return;
 
         updateNodeStatus(nodeId, 'success');
 
@@ -394,6 +415,7 @@ const useWorkflowStore = create<WorkflowState>((set, get) => ({
         const targetNodeIds = outgoingEdges.map(e => e.target);
 
         for (const targetId of targetNodeIds) {
+          if (!shouldContinue || !get().isExecuting) break;
           await get().executeNode(targetId, context); // Propager le contexte
         }
       }
@@ -403,16 +425,23 @@ const useWorkflowStore = create<WorkflowState>((set, get) => ({
       updateNodeStatus(nodeId, 'error');
     } finally {
       // 5. Nettoyage
-      executingNodes.delete(nodeId);
+      if (executingNodes.has(nodeId)) {
+        executingNodes.delete(nodeId);
+        console.log(`Nœud ${nodeId} retiré de la liste d'exécution`);
+      }
+
       // Vérifier si l'exécution doit se terminer
-      if (get().executingNodes.size === 0 && get().scheduleIntervals.size === 0) {
-          console.log("Exécution du workflow terminée (pas de nœuds actifs ni de schedules).");
-          // Attention: Ne pas mettre isExecuting à false si un schedule vient juste de se terminer
-          // mais qu'il n'y avait pas d'autres noeuds actifs. stopExecution gère mieux ce cas.
-          // On peut juste logger ici, stopExecution s'occupe de l'état isExecuting.
-          if (get().isExecuting) { // Seulement si on était encore marqué comme en cours
-             set({ isExecuting: false });
-          }
+      const currentExecutingNodes = get().executingNodes;
+      const currentScheduleIntervals = get().scheduleIntervals;
+
+      if (currentExecutingNodes.size === 0 && currentScheduleIntervals.size === 0) {
+        console.log("Exécution du workflow terminée (pas de nœuds actifs ni de schedules).");
+        if (get().isExecuting) {
+          console.log("Arrêt de l'exécution globale");
+          set({ isExecuting: false });
+        }
+      } else {
+        console.log(`Nœuds encore en cours: ${currentExecutingNodes.size}, Schedules actifs: ${currentScheduleIntervals.size}`);
       }
     }
   },

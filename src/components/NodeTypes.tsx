@@ -230,7 +230,7 @@ const EmailNode = (props: any) => (
   <BaseNode {...props} icon={Mail} color="border-red-500" label="Email" />
 );
 
-const IfConditionNode = ({ id, data }: { id: string; data: { label: string; expression?: string } }) => {
+const IfConditionNode = ({ id, data }: { id: string; data: { label: string; description?: string } }) => {
   const executingNodes = useWorkflowStore((state) => state.executingNodes);
   const nodeStatuses = useWorkflowStore((state) => state.nodeStatuses);
   const isExecuting = executingNodes.has(id);
@@ -238,16 +238,16 @@ const IfConditionNode = ({ id, data }: { id: string; data: { label: string; expr
 
   // Évaluer la condition si le nœud est en cours d'exécution
   const conditionResult = React.useMemo(() => {
-    if (isExecuting && data.expression) {
+    if (isExecuting && data.description) {
       try {
-        return Boolean(eval(data.expression));
+        return Boolean(eval(data.description));
       } catch (error) {
-        console.error('Erreur d’évaluation:', error);
+        console.error('Erreur d\'evaluation:', error);
         return false;
       }
     }
-    return null;
-  }, [isExecuting, data.expression]);
+    return false;
+  }, [isExecuting, data.description]);
 
   return (
     <NodeWrapper nodeId={id} isExecuting={isExecuting} status={status}>
