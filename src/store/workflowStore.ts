@@ -3,6 +3,7 @@ import { Node, Edge } from 'reactflow';
 
 type NodeStatus = 'idle' | 'running' | 'success' | 'error' | 'warning';
 
+
 interface WorkflowState {
   nodes: Node[];
   edges: Edge[];
