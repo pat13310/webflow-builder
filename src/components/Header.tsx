@@ -1,12 +1,23 @@
 import React, { useRef } from 'react';
-import { Play, Sun, Moon, Upload, Download, Square } from 'lucide-react';
+import { Play, Sun, Moon, Upload, Download, Square, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../hooks/useTheme';
 import useWorkflowStore from '../store/workflowStore';
 import PushButton from './ui/PushButton';
 
 const Header = () => {
   const { isDark, toggleTheme } = useTheme();
-  const { saveWorkflow, exportWorkflow, importWorkflow, isExecuting, stopExecution, nodes, edges, executeWorkflow } = useWorkflowStore();
+  const { 
+    saveWorkflow, 
+    exportWorkflow, 
+    importWorkflow, 
+    isExecuting, 
+    stopExecution, 
+    nodes, 
+    edges, 
+    executeWorkflow,
+    scheduleIntervals 
+  } = useWorkflowStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = async () => {
@@ -53,7 +64,7 @@ const Header = () => {
   const handleExecute = () => {
     if (nodes.length === 0) return;
     
-    // Trouver les nœuds déclencheurs (nœuds sans arêtes entrantes)
+    // Find trigger nodes (nodes without incoming edges)
     const triggerNodes = nodes.filter(node => 
       !edges.some(edge => edge.target === node.id)
     );
@@ -61,6 +72,33 @@ const Header = () => {
     if (triggerNodes.length > 0) {
       executeWorkflow(triggerNodes.map(node => node.id));
     }
+  };
+
+  interface Schedule {
+    nodeId: string;
+    intervalValue: number;
+    intervalUnit: string;
+  }
+
+  // Get schedule intervals info
+  const activeSchedules = Array.from(scheduleIntervals.entries())
+    .map(([nodeId]) => {
+      const node = nodes.find(n => n.id === nodeId);
+      if (!node) return null;
+
+      const intervalValue = parseInt(node.data.intervalValue || '1', 10);
+      const intervalUnit = node.data.intervalUnit || 'seconds';
+    
+      return { nodeId, intervalValue, intervalUnit } as Schedule;
+    })
+    .filter((schedule): schedule is Schedule => schedule !== null);
+
+  // Function to get human-readable interval text
+  const getIntervalText = (value: number, unit: string) => {
+    if (value === 1) {
+      return unit.slice(0, -1); // Remove 's' from plural
+    }
+    return `${value} ${unit}`;
   };
 
   return (
@@ -76,7 +114,31 @@ const Header = () => {
           <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm">Settings</a>
         </nav>
       </div>
+
       <div className="flex items-center space-x-2">
+        {/* Schedule Intervals Indicator */}
+        <AnimatePresence>
+          {activeSchedules.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, x: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.95, x: 20 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center mr-2 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md"
+            >
+              <Clock className="w-4 h-4 text-yellow-600 dark:text-yellow-400 animate-pulse mr-1.5" />
+              <div className="text-xs text-yellow-800 dark:text-yellow-200">
+                {activeSchedules.map((schedule, index) => (
+                  <span key={schedule.nodeId}>
+                    {index > 0 && ", "}
+                    {getIntervalText(schedule.intervalValue, schedule.intervalUnit)}
+                  </span>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <button
           onClick={toggleTheme}
           className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
@@ -116,6 +178,7 @@ const Header = () => {
             variant="danger"
             leftIcon={<Square className="w-4 h-4" />}
             onClick={stopExecution}
+            className="min-w-[80px]"
           >
             Stop
           </PushButton>
@@ -125,6 +188,8 @@ const Header = () => {
             variant="primary"
             leftIcon={<Play className="w-4 h-4" />}
             onClick={handleExecute}
+            disabled={nodes.length === 0}
+            className="min-w-[80px]"
           >
             Execute
           </PushButton>

@@ -20,8 +20,6 @@ import nodeTypes from './components/NodeTypes.tsx';
 import useWorkflowStore from './store/workflowStore.ts';
 import { useTheme } from './hooks/useTheme.ts';
 
-let nodeId = 0;
-
 const edgeOptions = {
   style: { stroke: '#94a3b8', strokeWidth: 1 },
   type: 'smoothstep',
@@ -31,7 +29,7 @@ const edgeOptions = {
 function Flow() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
-  const { nodes, edges, setNodes, setEdges, addNode, addEdge, updateNodeData } = useWorkflowStore();
+  const { nodes, edges, setNodes, setEdges, addNode, addEdge, updateNodeData, incrementNodeExecutionCounter } = useWorkflowStore();
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -77,16 +75,25 @@ function Flow() {
         y: event.clientY - reactFlowWrapper.current.getBoundingClientRect().top,
       });
 
+      // Récupérer le compteur actuel
+      const currentCounter = useWorkflowStore.getState().nodeExecutionCounters.get(type) || 0;
+      const newNodeId = currentCounter + 1;
+      
+      // Mettre à jour le compteur
+      incrementNodeExecutionCounter(type);
       const newNode = {
-        id: `node_${nodeId++}`,
+        id: `${type}-${newNodeId}`,
         type,
         position,
-        data: { label: `${type.charAt(0).toUpperCase() + type.slice(1)} ${nodeId}` },
+        data: { 
+          label: `${type.charAt(0).toUpperCase() + type.slice(1)} ${newNodeId}`,
+          active: type === 'schedule' ? true : undefined
+        },
       };
 
       addNode(newNode);
     },
-    [screenToFlowPosition, addNode]
+    [screenToFlowPosition, addNode, incrementNodeExecutionCounter]
   );
 
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);

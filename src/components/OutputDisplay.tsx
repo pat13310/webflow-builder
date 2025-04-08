@@ -8,7 +8,20 @@ interface OutputDisplayProps {
 }
 
 const OutputDisplay: React.FC<OutputDisplayProps> = ({ content = '', format = 'text' }) => {
+  const [parsedContent, setParsedContent] = React.useState<string>(content);
   const sanitizedContent = DOMPurify.sanitize(content);
+
+  React.useEffect(() => {
+    const parseContent = async () => {
+      if (format === 'markdown') {
+        const markdownContent = await marked(content);
+        setParsedContent(DOMPurify.sanitize(markdownContent));
+      } else {
+        setParsedContent(content);
+      }
+    };
+    parseContent();
+  }, [content, format]);
 
   const renderContent = () => {
     switch (format) {
@@ -23,7 +36,7 @@ const OutputDisplay: React.FC<OutputDisplayProps> = ({ content = '', format = 't
         return (
           <div 
             className="prose prose-sm dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked(content)) }}
+            dangerouslySetInnerHTML={{ __html: parsedContent }}
           />
         );
       case 'text':

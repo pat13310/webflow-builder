@@ -1,14 +1,16 @@
 import React from 'react';
 import { Handle, Position } from 'reactflow';
-import { Zap, Globe, Database, Mail, GitBranch, Clock, Timer, Bot, Brain, MessageSquare, Split, Bug, MousePointer, Hash, FileText } from 'lucide-react';
+import { Zap, Globe, Database, Mail, GitBranch, Clock, Timer, Brain, Split, Bug, MousePointer, Hash, FileText } from 'lucide-react';
 import { NodeWrapper } from './NodeWrapper';
 import useWorkflowStore from '../store/workflowStore';
 import PushButton from './ui/PushButton';
 import OutputDisplay from './OutputDisplay';
+import { ExecutionCounter } from './ExecutionCounter';
 
 const BaseNode = ({ 
   id,
   data, 
+  type,
   icon: Icon, 
   color, 
   label,
@@ -17,6 +19,7 @@ const BaseNode = ({
 }: { 
   id: string;
   data: { label: string; input?: any }; 
+  type: string;
   icon: any; 
   color: string; 
   label: string;
@@ -38,7 +41,10 @@ const BaseNode = ({
             </div>
             <div className="text-3xs font-medium text-gray-900 dark:text-gray-100 truncate leading-none">{data.label}</div>
           </div>
-          <div className="text-3xs text-gray-500 dark:text-gray-400 mt-0.5 leading-none">{label}</div>
+          <div className="text-3xs text-gray-500 dark:text-gray-400 mt-0.5 leading-none flex justify-between items-center">
+            <span>{label}</span>
+            <ExecutionCounter nodeType={type} />
+          </div>
           {data.input && width === '200px' && (
             <div className="mt-1 bg-gray-50 dark:bg-gray-900/50 rounded p-1 max-h-[120px] overflow-y-auto">
               <pre className="text-3xs text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-mono">
@@ -64,53 +70,47 @@ const BaseNode = ({
   );
 };
 
-const CounterNode = ({ id, data }: { id: string; data: { label: string; count?: number; initialValue?: number } }) => {
-  const { updateNodeData, executeNode } = useWorkflowStore();
+const CounterNode = ({ id, data }: { id: string; data: {
+  wrap: boolean;
+  min: any;
+  max: any;
+  step: any; label: string; count?: number; initialValue?: number 
+} }) => {
+  const { updateNodeData } = useWorkflowStore();
   const executingNodes = useWorkflowStore((state) => state.executingNodes);
   const nodeStatuses = useWorkflowStore((state) => state.nodeStatuses);
+  const nodeData = useWorkflowStore(state => 
+    state.nodes.find(node => node.id === id)?.data
+  );
   const isExecuting = executingNodes.has(id);
   const status = nodeStatuses.get(id)?.status || 'idle';
 
   // Initialize counter with initial value if count is not set
   React.useEffect(() => {
-    if (typeof data.count === 'undefined' && typeof data.initialValue !== 'undefined') {
+    if (typeof data.count === 'undefined' && typeof data.initialValue !== 'undefined' && !nodeData?.count) {
       updateNodeData(id, { ...data, count: data.initialValue });
     }
-  }, [id, data.initialValue]);
+  }, [id, data, nodeData, updateNodeData]);
 
-  const handleIncrement = () => {
-    const currentCount = parseInt(data.count?.toString() || '0', 10);
-    const step = parseInt(data.step?.toString() || '1', 10);
-    const max = parseInt(data.max?.toString() || '999', 10);
-    const min = parseInt(data.min?.toString() || '0', 10);
-    const wrap = data.wrap === true;
+  // Incrémenter le compteur lors de l'exécution
+  React.useEffect(() => {
+    if (isExecuting) {
+      const step = parseInt(data.step?.toString() || '1', 10);
+      const max = parseInt(data.max?.toString() || '999', 10);
+      const min = parseInt(data.min?.toString() || '0', 10);
+      const wrap = data.wrap === true;
+      const currentCount = nodeData?.count ?? nodeData?.initialValue ?? 0;
 
-    let newCount = currentCount + step;
-    if (newCount > max) {
-      newCount = wrap ? min : max;
+      let newCount = currentCount + step;
+      if (newCount > max) {
+        newCount = wrap ? min : max;
+      }
+
+      updateNodeData(id, { ...data, count: newCount });
     }
+  }, [isExecuting]);
 
-    updateNodeData(id, { ...data, count: newCount });
-    executeNode(id);
-  };
-
-  const handleDecrement = () => {
-    const currentCount = parseInt(data.count?.toString() || '0', 10);
-    const step = parseInt(data.step?.toString() || '1', 10);
-    const max = parseInt(data.max?.toString() || '999', 10);
-    const min = parseInt(data.min?.toString() || '0', 10);
-    const wrap = data.wrap === true;
-
-    let newCount = currentCount - step;
-    if (newCount < min) {
-      newCount = wrap ? max : min;
-    }
-
-    updateNodeData(id, { ...data, count: newCount });
-    executeNode(id);
-  };
-
-  const displayCount = typeof data.count !== 'undefined' ? data.count : data.initialValue || 0;
+  const displayCount = typeof nodeData?.count !== 'undefined' ? nodeData.count : nodeData?.initialValue || 0;
 
   return (
     <NodeWrapper nodeId={id} isExecuting={isExecuting} status={status}>
@@ -123,19 +123,7 @@ const CounterNode = ({ id, data }: { id: string; data: { label: string; count?: 
             <div className="text-3xs font-medium text-gray-900 dark:text-gray-100 truncate leading-none">{data.label}</div>
           </div>
           <div className="flex items-center justify-between mt-1 px-0.5">
-            <button
-              onClick={handleDecrement}
-              className="text-3xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded px-1"
-            >
-              -
-            </button>
             <span className="text-3xs font-medium">{displayCount}</span>
-            <button
-              onClick={handleIncrement}
-              className="text-3xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded px-1"
-            >
-              +
-            </button>
           </div>
         </div>
         <Handle 
@@ -200,10 +188,10 @@ const OutputNode = ({ id, data }: { id: string; data: { label: string; content?:
 
   return (
     <NodeWrapper nodeId={id} isExecuting={isExecuting} status={status}>
-      <div className="shadow-sm rounded-md bg-white dark:bg-gray-800 border-l-[3px] border-emerald-500 w-[200px] backdrop-blur-sm bg-opacity-95">
-        <div className="px-1.5 py-1">
+      <div className="p-2 shadow-sm rounded-md bg-white dark:bg-gray-800  border-emerald-500 w-[120px] backdrop-blur-sm bg-opacity-95">
+        <div className="px-1">
           <div className="flex items-center gap-1">
-            <div className="bg-emerald-500 bg-opacity-10 rounded-sm p-0.5">
+            <div className="bg-emerald-500 bg-opacity-20 rounded-sm p-0.5">
               <FileText className="h-2 w-2 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div className="text-3xs font-medium text-gray-900 dark:text-gray-100 truncate leading-none">{data.label}</div>
