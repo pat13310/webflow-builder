@@ -290,7 +290,86 @@ const useWorkflowStore = create<WorkflowState>((set, get) => ({
       }
 
       // 4. Logique Spécifique au Type
-      if (node.type === 'schedule') {
+      if (node.type === 'webhook') {
+        console.log(`Démarrage de l'écoute du webhook pour le nœud ${nodeId}`);
+        
+        try {
+          // Marquer le nœud comme en écoute
+          updateNodeStatus(nodeId, 'running');
+
+          // Fonction de callback pour le webhook
+          const handleWebhook = async (data: any) => {
+            console.log(`Webhook ${nodeId} déclenché avec les données:`, data);
+
+            // Exécuter les nœuds suivants avec les données reçues
+            const outgoingEdges = edges.filter(e => e.source === nodeId);
+            for (const edge of outgoingEdges) {
+              if (!shouldContinue || !get().isExecuting) break;
+              get().updateNodeData(edge.target, { ...nodes.find(n => n.id === edge.target)?.data, input: data });
+              await get().executeNode(edge.target, context);
+            }
+          };
+
+          // Démarrer l'écoute
+          console.log(`Webhook ${nodeId} en attente de déclenchement`);
+
+          // Retourner une promesse qui ne se résout jamais tant que le workflow est actif
+          await new Promise(() => {});
+
+        } catch (error) {
+          console.error(`Erreur de configuration du webhook:`, error);
+          updateNodeStatus(nodeId, 'error');
+          throw error;
+        }
+
+      } else if (node.type === 'sendEmail') {
+        console.log(`Envoi d'email depuis le nœud ${nodeId}`);
+        
+        try {
+          const { to, subject, message } = node.data;
+          
+          if (!to || !subject || !message) {
+            throw new Error('Champs email incomplets');
+          }
+
+          // Préparation des données pour le webhook
+          const webhookData = {
+            to: to,
+            from: 'xenatronics@gmx.fr',
+            subject: subject,
+            message: message + '\n\nRépondre à : ' + to, // Ajout de l'adresse de réponse
+          };
+
+          // Envoi via webhook
+          const response = await fetch('https://webhook.site/YOUR-WEBHOOK-URL', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(webhookData)
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+          }
+
+          console.log('Email envoyé avec succès');
+          updateNodeStatus(nodeId, 'success');
+
+          // Exécuter les nœuds suivants
+          const outgoingEdges = edges.filter(e => e.source === nodeId);
+          for (const edge of outgoingEdges) {
+            if (!shouldContinue || !get().isExecuting) break;
+            await get().executeNode(edge.target, context);
+          }
+
+        } catch (error) {
+          console.error(`Erreur d'envoi d'email:`, error);
+          updateNodeStatus(nodeId, 'error');
+          throw error;
+        }
+
+      } else if (node.type === 'schedule') {
         // --- Logique Schedule ---
         const existingInterval = scheduleIntervals.get(nodeId);
         if (existingInterval) clearInterval(existingInterval);

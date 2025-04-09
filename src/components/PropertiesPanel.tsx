@@ -177,7 +177,7 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate }: PropertiesPanelProps) =
   const renderProperties = () => {
     switch (selectedNode.type) {
       case 'webhook':
-        return <WebhookProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />;
+        return <WebhookProperties nodeId={selectedNode.id} data={currentFormData} onNodeUpdate={handlePropertyChange} />;
       case 'aiAgent':
         return <AIAgentProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />;
       case 'httpRequest':

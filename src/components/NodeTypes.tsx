@@ -7,21 +7,72 @@ import PushButton from './ui/PushButton';
 import OutputDisplay from './OutputDisplay';
 import { ExecutionCounter } from './ExecutionCounter';
 
-const BaseNode = ({ 
+type ConfigField = {
+  label: string;
+  type: 'text' | 'select' | 'textarea';
+  field: string;
+  placeholder?: string;
+  value: string;
+  options?: string[];
+  rows?: number;
+};
+
+const ConfigPanel = ({ fields, onChange }: { fields: ConfigField[]; onChange: (field: string, value: string) => void }) => {
+  return (
+    <div className="absolute left-full top-0 ml-2 bg-white dark:bg-gray-800 p-2 rounded shadow-lg border border-gray-200 dark:border-gray-700 w-64">
+      <div className="space-y-2">
+        {fields.map((field) => (
+          <div key={field.field}>
+            <label className="block text-xs text-gray-700 dark:text-gray-300 mb-1">{field.label}:</label>
+            {field.type === 'select' ? (
+              <select
+                value={field.value}
+                onChange={(e) => onChange(field.field, e.target.value)}
+                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded"
+              >
+                {field.options?.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            ) : field.type === 'textarea' ? (
+              <textarea
+                value={field.value}
+                onChange={(e) => onChange(field.field, e.target.value)}
+                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded"
+                placeholder={field.placeholder}
+                rows={field.rows}
+              />
+            ) : (
+              <input
+                type={field.type}
+                value={field.value}
+                onChange={(e) => onChange(field.field, e.target.value)}
+                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded"
+                placeholder={field.placeholder}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const BaseNode = ({
   id,
-  data, 
+  data,
   type,
-  icon: Icon, 
-  color, 
+  icon: Icon,
+  color,
   label,
   hasInput = true,
   width = '88px'
-}: { 
+}: {
   id: string;
-  data: { label: string; input?: any }; 
+  data: { label: string; input?: any };
   type: string;
-  icon: any; 
-  color: string; 
+  icon: any;
+  color: string;
   label: string;
   hasInput?: boolean;
   width?: string;
@@ -54,32 +105,34 @@ const BaseNode = ({
           )}
         </div>
         {hasInput && (
-          <Handle 
-            type="target" 
-            position={Position.Left} 
-            className="!w-[6px] !h-[6px] !bg-green-500 !-left-[7px]" 
+          <Handle
+            type="target"
+            position={Position.Left}
+            className="!w-[6px] !h-[6px] !bg-green-500 !-left-[7px]"
           />
         )}
-        <Handle 
-          type="source" 
-          position={Position.Right} 
-          className="!w-[6px] !h-[6px] !bg-blue-500 !-right-[7px]" 
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!w-[6px] !h-[6px] !bg-blue-500 !-right-[7px]"
         />
       </div>
     </NodeWrapper>
   );
 };
 
-const CounterNode = ({ id, data }: { id: string; data: {
-  wrap: boolean;
-  min: any;
-  max: any;
-  step: any; label: string; count?: number; initialValue?: number 
-} }) => {
+const CounterNode = ({ id, data }: {
+  id: string; data: {
+    wrap: boolean;
+    min: any;
+    max: any;
+    step: any; label: string; count?: number; initialValue?: number
+  }
+}) => {
   const { updateNodeData } = useWorkflowStore();
   const executingNodes = useWorkflowStore((state) => state.executingNodes);
   const nodeStatuses = useWorkflowStore((state) => state.nodeStatuses);
-  const nodeData = useWorkflowStore(state => 
+  const nodeData = useWorkflowStore(state =>
     state.nodes.find(node => node.id === id)?.data
   );
   const isExecuting = executingNodes.has(id);
@@ -126,15 +179,15 @@ const CounterNode = ({ id, data }: { id: string; data: {
             <span className="text-3xs font-medium">{displayCount}</span>
           </div>
         </div>
-        <Handle 
-          type="target" 
-          position={Position.Left} 
-          className="!w-[6px] !h-[6px] !bg-green-500 !-left-[7px]" 
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!w-[6px] !h-[6px] !bg-green-500 !-left-[7px]"
         />
-        <Handle 
-          type="source" 
-          position={Position.Right} 
-          className="!w-[6px] !h-[6px] !bg-blue-500 !-right-[7px]" 
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!w-[6px] !h-[6px] !bg-blue-500 !-right-[7px]"
         />
       </div>
     </NodeWrapper>
@@ -170,10 +223,10 @@ const PushButtonNode = ({ id, data }: { id: string; data: { label: string; varia
             </PushButton>
           </div>
         </div>
-        <Handle 
-          type="source" 
-          position={Position.Right} 
-          className="!w-[6px] !h-[6px] !bg-blue-500 !-right-[7px]" 
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!w-[6px] !h-[6px] !bg-blue-500 !-right-[7px]"
         />
       </div>
     </NodeWrapper>
@@ -200,10 +253,10 @@ const OutputNode = ({ id, data }: { id: string; data: { label: string; content?:
             <OutputDisplay content={data.content} format={data.format} />
           </div>
         </div>
-        <Handle 
-          type="target" 
-          position={Position.Left} 
-          className="!w-[6px] !h-[6px] !bg-green-500 !-left-[7px]" 
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!w-[6px] !h-[6px] !bg-green-500 !-left-[7px]"
         />
       </div>
     </NodeWrapper>
@@ -218,6 +271,10 @@ const ScheduleNode = (props: any) => (
   <BaseNode {...props} icon={Clock} color="border-yellow-500" label="Schedule" hasInput={false} />
 );
 
+const WebhookNode = (props: any) => {
+  return <BaseNode {...props} icon={Globe} color="border-blue-500" label="Webhook" hasInput={false} />;
+};
+
 const HttpRequestNode = (props: any) => (
   <BaseNode {...props} icon={Globe} color="border-blue-500" label="HTTP Request" />
 );
@@ -226,9 +283,76 @@ const DatabaseNode = (props: any) => (
   <BaseNode {...props} icon={Database} color="border-green-500" label="Database" />
 );
 
-const EmailNode = (props: any) => (
-  <BaseNode {...props} icon={Mail} color="border-red-500" label="Email" />
-);
+const SendEmailNode = ({ id, data }: { id: string; data: { label: string; to?: string; subject?: string; message?: string } }) => {
+  const executingNodes = useWorkflowStore((state) => state.executingNodes);
+  const nodeStatuses = useWorkflowStore((state) => state.nodeStatuses);
+  const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
+  const isExecuting = executingNodes.has(id);
+  const status = nodeStatuses.get(id)?.status || 'idle';
+
+  // Gestion des changements des champs
+  const handleFieldChange = (field: string, value: string) => {
+    updateNodeData(id, { ...data, [field]: value });
+  };
+
+  return (
+    <NodeWrapper nodeId={id} isExecuting={isExecuting} status={status}>
+      <div className="shadow-sm rounded-md bg-white dark:bg-gray-800 border-l-[3px] border-red-500 w-[200px] backdrop-blur-sm bg-opacity-95">
+        <div className="px-2 py-1">
+          <div className="flex items-center gap-1.5 mb-2">
+            <div className="bg-red-500 bg-opacity-10 rounded-sm p-0.5">
+              <Mail className="h-3 w-3 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate leading-none">{data.label || 'Send Email'}</div>
+          </div>
+
+          <div className="space-y-2 text-xs">
+            <div>
+              <label className="block text-gray-700 dark:text-gray-300 text-[10px] mb-1">To:</label>
+              <input
+                type="email"
+                value={data.to || ''}
+                onChange={(e) => handleFieldChange('to', e.target.value)}
+                className="w-full px-1.5 py-0.5 text-[11px] border border-gray-300 dark:border-gray-600 rounded-sm"
+                placeholder="recipient@example.com"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-700 dark:text-gray-300 text-[10px] mb-1">Subject:</label>
+              <input
+                type="text"
+                value={data.subject || ''}
+                onChange={(e) => handleFieldChange('subject', e.target.value)}
+                className="w-full px-1.5 py-0.5 text-[11px] border border-gray-300 dark:border-gray-600 rounded-sm"
+                placeholder="Email subject"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-700 dark:text-gray-300 text-[10px] mb-1">Message:</label>
+              <textarea
+                value={data.message || ''}
+                onChange={(e) => handleFieldChange('message', e.target.value)}
+                className="w-full px-1.5 py-0.5 text-[11px] border border-gray-300 dark:border-gray-600 rounded-sm"
+                placeholder="Email content"
+                rows={3}
+              />
+            </div>
+          </div>
+        </div>
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!w-[6px] !h-[6px] !bg-green-500 !-left-[7px]"
+        />
+        <Handle
+          type="source"
+          position={Position.Right}
+          className={`!w-[6px] !h-[6px] ${isExecuting ? '!bg-green-500 !ring-2 !ring-green-300' : '!bg-green-500'} !-right-[7px]`}
+        />
+      </div>
+    </NodeWrapper>
+  );
+};
 
 const IfConditionNode = ({ id, data }: { id: string; data: { label: string; description?: string } }) => {
   const executingNodes = useWorkflowStore((state) => state.executingNodes);
@@ -260,21 +384,21 @@ const IfConditionNode = ({ id, data }: { id: string; data: { label: string; desc
             <div className="text-3xs font-medium text-gray-900 dark:text-gray-100 truncate leading-none">{data.label}</div>
           </div>
         </div>
-        <Handle 
-          type="target" 
-          position={Position.Left} 
-          className="!w-[6px] !h-[6px] !bg-green-500 !-left-[7px]" 
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!w-[6px] !h-[6px] !bg-green-500 !-left-[7px]"
         />
-        <Handle 
-          type="source" 
-          position={Position.Right} 
-          className={`!w-[6px] !h-[6px] ${isExecuting ? (conditionResult === true ? '!bg-green-500 !ring-2 !ring-green-300' : '!bg-gray-400') : '!bg-green-500'} !-right-[7px] !top-[25%]`} 
+        <Handle
+          type="source"
+          position={Position.Right}
+          className={`!w-[6px] !h-[6px] ${isExecuting ? (conditionResult === true ? '!bg-green-500 !ring-2 !ring-green-300' : '!bg-gray-400') : '!bg-green-500'} !-right-[7px] !top-[25%]`}
           id="true"
         />
-        <Handle 
-          type="source" 
-          position={Position.Right} 
-          className={`!w-[6px] !h-[6px] ${isExecuting ? (conditionResult === false ? '!bg-red-500 !ring-2 !ring-red-300' : '!bg-gray-400') : '!bg-red-500'} !-right-[7px] !top-[75%]`} 
+        <Handle
+          type="source"
+          position={Position.Right}
+          className={`!w-[6px] !h-[6px] ${isExecuting ? (conditionResult === false ? '!bg-red-500 !ring-2 !ring-red-300' : '!bg-gray-400') : '!bg-red-500'} !-right-[7px] !top-[75%]`}
           id="false"
         />
       </div>
@@ -301,9 +425,10 @@ const DebugNode = (props: any) => (
 export const nodeTypes = {
   start: StartNode,
   schedule: ScheduleNode,
+  webhook: WebhookNode,
   httpRequest: HttpRequestNode,
   database: DatabaseNode,
-  email: EmailNode,
+  sendEmail: SendEmailNode,
   ifCondition: IfConditionNode,
   wait: WaitNode,
   aiAgent: AiAgentNode,

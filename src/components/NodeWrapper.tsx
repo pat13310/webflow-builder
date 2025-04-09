@@ -98,38 +98,40 @@ export const NodeWrapper = ({ children, nodeId, isExecuting, status = 'idle' }: 
         </motion.div>
       </ContextMenu.Trigger>
 
-      <ContextMenu.Portal>
-        <ContextMenu.Content
-          className="min-w-[140px] bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1 text-xs"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <ContextMenu.Item
-            className="flex items-center px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-            onClick={() => duplicateNode(nodeId)}
+      {showMenu && (
+        <ContextMenu.Portal>
+          <ContextMenu.Content
+            className="min-w-[140px] bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1 text-xs"
+            onClick={(e) => e.stopPropagation()}
           >
-            <Copy className="w-3 h-3 mr-1.5" />
-            Duplicate
-          </ContextMenu.Item>
-          
-          <ContextMenu.Item
-            className="flex items-center px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-            onClick={() => executeNode(nodeId)}
-          >
-            <Play className="w-3 h-3 mr-1.5" />
-            Execute
-          </ContextMenu.Item>
+            <ContextMenu.Item
+              className="flex items-center px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              onClick={() => duplicateNode(nodeId)}
+            >
+              <Copy className="w-3 h-3 mr-1.5" />
+              Dupliquer
+            </ContextMenu.Item>
+            
+            <ContextMenu.Item
+              className="flex items-center px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              onClick={() => executeNode(nodeId)}
+            >
+              <Play className="w-3 h-3 mr-1.5" />
+              Exécuter
+            </ContextMenu.Item>
 
-          <ContextMenu.Separator className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
-          
-          <ContextMenu.Item
-            className="flex items-center px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
-            onClick={() => deleteNode(nodeId)}
-          >
-            <Trash className="w-3 h-3 mr-1.5" />
-            Delete
-          </ContextMenu.Item>
-        </ContextMenu.Content>
-      </ContextMenu.Portal>
+            <ContextMenu.Separator className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+            
+            <ContextMenu.Item
+              className="flex items-center px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
+              onClick={() => deleteNode(nodeId)}
+            >
+              <Trash className="w-3 h-3 mr-1.5" />
+              Supprimer
+            </ContextMenu.Item>
+          </ContextMenu.Content>
+        </ContextMenu.Portal>
+      )}
     </ContextMenu.Root>
   );
 };

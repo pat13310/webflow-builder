@@ -33,8 +33,6 @@ function Flow() {
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      // Éviter les mises à jour inutiles si les changements sont vides
-      if (changes.length === 0) return;
       setNodes((nds) => applyNodeChanges(changes, nds));
     },
     [setNodes]
