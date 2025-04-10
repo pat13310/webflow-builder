@@ -176,8 +176,7 @@ function Flow() {
         </div>
       </div>
     </div>
-  );
-  
+  );  
 }
 
 export default Flow;
