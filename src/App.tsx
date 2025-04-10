@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState, lazy, Suspense } from 'react';
 import { NodeChange, EdgeChange } from 'reactflow';
 import ReactFlow, {
   Background,
@@ -13,12 +13,16 @@ import ReactFlow, {
 import { motion, AnimatePresence } from 'framer-motion';
 import 'reactflow/dist/style.css';
 
-import Header from './components/Header.tsx';
-import Sidebar from './components/Sidebar.tsx';
-import PropertiesPanel from './components/PropertiesPanel.tsx';
+// Lazy load components
+const Header = lazy(() => import('./components/Header.tsx'));
+const Sidebar = lazy(() => import('./components/Sidebar.tsx'));
+const PropertiesPanel = lazy(() => import('./components/PropertiesPanel.tsx'));
+
+
 import { nodeTypes } from './components/NodeTypes.tsx';
 import useWorkflowStore from './store/workflowStore.ts';
 import { useTheme } from './hooks/useTheme.ts';
+import FancyLoader from './components/FancyLoader.tsx';
 
 const edgeOptions = {
   style: { stroke: '#94a3b8', strokeWidth: 1 },
@@ -103,11 +107,28 @@ function Flow() {
 
   return (
     <div className="flex h-screen dark:bg-gray-900">
-      <Sidebar />
+      <Suspense
+        fallback={
+          <div className="w-[250px]">
+            <FancyLoader message="Chargement des noeuds..." />
+          </div>
+        }
+      >
+        <Sidebar />
+      </Suspense>
       <div className="flex flex-col flex-1">
-        <Header />
-        <div className="flex flex-1 relative">
-          <div ref={reactFlowWrapper} className="flex-1 h-full">
+        <Suspense
+          fallback={
+            <div className="h-[64px] bg-gray-100 dark:bg-gray-800">
+              <FancyLoader message="Chargement du menu..." />
+            </div>
+          }
+        >
+          <Header />
+        </Suspense>
+        <div className="flex flex-1 relative overflow-hidden">
+          <div ref={reactFlowWrapper} className="flex-1 h-full min-w-0">
+            {/* ReactFlow, pas lazy ici car central et critique */}
             <ReactFlow
               nodes={nodes}
               edges={edges}
@@ -119,9 +140,14 @@ function Flow() {
               nodeTypes={nodeTypes}
               defaultEdgeOptions={edgeOptions}
               onNodeClick={(_, node) => setSelectedNode(node)}
+              onPaneClick={() => setSelectedNode(null)}
               fitView
             >
-              <Background color={isDark ? '#1f2937' : '#e5e7eb'} gap={16} size={1} />
+              <Background
+                color={isDark ? "#1f2937" : "#e5e7eb"}
+                gap={16}
+                size={1}
+              />
               <Controls className="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700" />
             </ReactFlow>
           </div>
@@ -132,12 +158,18 @@ function Flow() {
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: 280, opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="w-[300px] border-l dark:border-gray-800 bg-white dark:bg-gray-900 h-full overflow-y-auto"
+                className="border-l dark:border-gray-800 bg-white dark:bg-gray-900 h-full overflow-y-auto"
               >
-                <PropertiesPanel
-                  selectedNode={selectedNode}
-                  onNodeUpdate={updateNodeData}
-                />
+                <Suspense
+                  fallback={
+                    <div className="p-4">Chargement des propriétés...</div>
+                  }
+                >
+                  <PropertiesPanel
+                    selectedNode={selectedNode}
+                    onNodeUpdate={updateNodeData}
+                  />
+                </Suspense>
               </motion.div>
             )}
           </AnimatePresence>
@@ -145,6 +177,7 @@ function Flow() {
       </div>
     </div>
   );
+  
 }
 
 export default Flow;
