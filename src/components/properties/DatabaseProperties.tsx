@@ -1,6 +1,5 @@
 import React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Node as FlowNode } from 'reactflow';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 
 // Utilitaire de validation JSON
 const isValidJson = (str: string): boolean => {
@@ -13,11 +12,28 @@ const isValidJson = (str: string): boolean => {
   }
 };
 
-// Interface for props including formData
 interface DatabasePropertiesProps {
-  selectedNode: FlowNode;
-  onNodeUpdate: (field: string, value: any) => void; // Simplified signature
-  formData: Record<string, any>;
+  nodeId: string;
+  data: {
+    dbType?: string;
+    operation?: string;
+    useTransaction?: boolean;
+    query?: string;
+    parameters?: string;
+    collection?: string;
+    filter?: string;
+    update?: string;
+    document?: string;
+    pipeline?: string;
+    options?: string;
+    key?: string;
+    value?: string;
+    expiration?: string;
+    increment?: string;
+    dbFile?: string;
+    [key: string]: any;
+  };
+  onNodeUpdate: (field: string, value: any) => void;
 }
 
 // Define operations per DB type for easier management
@@ -128,39 +144,35 @@ const operationSpecificFields: Record<string, Record<string, string[]>> = {
 };
 
 
-const DatabaseProperties = ({ selectedNode, onNodeUpdate, formData }: DatabasePropertiesProps): JSX.Element => {
-  if (!selectedNode) {
-    return <div>Aucun nœud sélectionné</div>;
-  }
+const DatabaseProperties: React.FC<DatabasePropertiesProps> = ({ nodeId, data, onNodeUpdate }) => {
   // État local pour les erreurs de validation
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const nodeId = selectedNode.id;
 
-  // --- State Derivation ---
-  const dbType = formData?.dbType ?? 'postgresql';
-  const operation = formData?.operation ?? ''; // Start empty, set default based on type later
-  const useTransaction = formData?.useTransaction ?? false;
+  // --- State Derivation avec valeurs par défaut ---
+  const dbType: string = data.dbType || 'postgresql';
+  const operation: string = data.operation || '';
+  const useTransaction: boolean = data.useTransaction || false;
 
   // SQL
-  const query = formData?.query ?? '';
-  const parameters = formData?.parameters ?? ''; // Expect JSON array string
+  const query: string = data.query || '';
+  const parameters: string = data.parameters || '[]';
 
   // MongoDB
-  const collection = formData?.collection ?? '';
-  const filter = formData?.filter ?? ''; // Expect JSON object string
-  const update = formData?.update ?? ''; // Expect JSON object string
-  const document = formData?.document ?? ''; // Expect JSON object/array string
-  const pipeline = formData?.pipeline ?? ''; // Expect JSON array string
-  const options = formData?.options ?? ''; // Expect JSON object string
+  const collection: string = data.collection || '';
+  const filter: string = data.filter || '{}';
+  const update: string = data.update || '{}';
+  const document: string = data.document || '{}';
+  const pipeline: string = data.pipeline || '[]';
+  const options: string = data.options || '{}';
 
   // Redis
-  const redisKey = formData?.key ?? '';
-  const redisValue = formData?.value ?? '';
-  const redisExpiration = formData?.expiration ?? ''; // Expect number or empty string
-  const redisIncrement = formData?.increment ?? '1'; // Default increment/decrement amount
+  const redisKey: string = data.key || '';
+  const redisValue: string = data.value || '';
+  const redisExpiration: string = data.expiration || '';
+  const redisIncrement: string = data.increment || '1';
 
   // SQLite
-  const dbFile = formData?.dbFile ?? 'database.sqlite';
+  const dbFile: string = data.dbFile || 'database.sqlite';
 
 
   // --- Memoized Operations List ---
@@ -203,67 +215,64 @@ const DatabaseProperties = ({ selectedNode, onNodeUpdate, formData }: DatabasePr
 
   // --- Effects for Resetting Fields ---
 
-  // Effect to reset operation and type-specific fields when dbType changes
+  // Ref pour suivre l'initialisation
+  const initializedRef = useRef(false);
+
+  // Ref pour suivre les changements
+  const prevStateRef = useRef({ dbType, operation });
+
+  // Effect pour gérer les changements de type et d'opération
   useEffect(() => {
-      const defaultOp = availableOperations[0]?.value;
-      if (defaultOp && operation !== defaultOp) {
-          // Reset operation first
-          handlePropertyChange('operation', defaultOp);
-
-          // Clear all potentially irrelevant fields from *other* types
-          const currentTypeFields = typeSpecificFields[dbType] || [];
-          Object.keys(typeSpecificFields).forEach(typeKey => {
-              if (typeKey !== dbType) {
-                  typeSpecificFields[typeKey].forEach(field => {
-                     // Check if the field is also used by the current type to avoid over-clearing
-                     if (!currentTypeFields.includes(field) && formData?.[field] !== undefined) {
-                         handlePropertyChange(field, undefined); // Or set to default empty/null value
-                     }
-                  });
-              }
-          });
-          // Clear operation-specific fields from the previous operation (if any)
-           clearOperationSpecificFields(dbType, ''); // Clear all op fields for the new type initially
-      }
-  }, [dbType, availableOperations, handlePropertyChange]); // Rerun when dbType changes
-
-
-   // Helper to clear fields specific to an operation within a type
-   const clearOperationSpecificFields = useCallback((currentDbType: string, previousOperation: string) => {
-    const opFieldsMap = operationSpecificFields[currentDbType as keyof typeof operationSpecificFields];
-    if (opFieldsMap && previousOperation && opFieldsMap[previousOperation]) {
-        opFieldsMap[previousOperation].forEach(field => {
-            if (formData?.[field] !== undefined) {
-                handlePropertyChange(field, undefined); // Reset field
-            }
-        });
-    } else if (opFieldsMap && !previousOperation) {
-        // If previousOperation is empty, clear *all* operation fields for this type
-        Object.values(opFieldsMap).flat().forEach(field => {
-             if (formData?.[field] !== undefined) {
-                 handlePropertyChange(field, undefined);
-             }
-        });
+    // Ne pas exécuter lors du premier rendu
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      prevStateRef.current = { dbType, operation };
+      return;
     }
-}, [formData, handlePropertyChange]);
 
+    const updates: Map<string, any> = new Map();
 
-  // Effect to reset operation-specific fields when operation changes (within the same dbType)
-  useEffect(() => {
-      // We need the previous operation value. This requires storing it somehow,
-      // maybe using useRef or a more complex state management approach if resets become intricate.
-      // For now, we'll assume the parent PropertiesPanel might handle the `formData` state
-      // in a way that implicitly clears fields when `operation` changes, OR
-      // we accept that some fields might linger until the user clears them manually
-      // when switching operations.
+    // Gérer le changement de type de base de données
+    if (dbType !== prevStateRef.current.dbType) {
+      const defaultOp = availableOperations[0]?.value;
+      if (defaultOp) {
+        updates.set('operation', defaultOp);
 
-      // A simpler approach without tracking previous state: just ensure the *required*
-      // fields for the *current* operation are present/defaulted, but don't explicitly clear
-      // fields from other operations of the *same* dbType.
-      // Example: If switching from Mongo updateOne to find, the 'update' field remains
-      // in formData unless manually cleared or overwritten by parent logic.
+        // Réinitialiser les champs spécifiques au type précédent
+        const currentTypeFields = typeSpecificFields[dbType] || [];
+        Object.keys(typeSpecificFields).forEach(typeKey => {
+          if (typeKey !== dbType) {
+            typeSpecificFields[typeKey].forEach(field => {
+              if (!currentTypeFields.includes(field) && data?.[field] !== undefined) {
+                updates.set(field, undefined);
+              }
+            });
+          }
+        });
+      }
+    }
+    // Gérer le changement d'opération
+    else if (operation !== prevStateRef.current.operation) {
+      const opFieldsMap = operationSpecificFields[dbType as keyof typeof operationSpecificFields];
+      if (opFieldsMap && prevStateRef.current.operation && opFieldsMap[prevStateRef.current.operation]) {
+        opFieldsMap[prevStateRef.current.operation].forEach(field => {
+          if (data?.[field] !== undefined) {
+            updates.set(field, undefined);
+          }
+        });
+      }
+    }
 
-  }, [operation, dbType, clearOperationSpecificFields]); // Rerun when operation or dbType changes
+    // Appliquer toutes les mises à jour en une seule fois
+    if (updates.size > 0) {
+      updates.forEach((value, field) => {
+        handlePropertyChange(field, value);
+      });
+    }
+
+    // Mettre à jour les références
+    prevStateRef.current = { dbType, operation };
+  }, [dbType, operation, availableOperations, data, typeSpecificFields, handlePropertyChange]); // Dépendances de l'effet
 
 
   // --- Render Helper for JSON Textareas ---
