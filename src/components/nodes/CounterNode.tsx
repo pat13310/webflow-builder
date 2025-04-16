@@ -28,9 +28,12 @@ export const CounterNode: React.FC<CounterNodeProps> = ({ id, data }) => {
   const incrementValue = useCounterValuesStore((state) => state.incrementValue);
 
   useEffect(() => {
-    // Initialiser la valeur si nécessaire
+    // Initialiser la valeur si nécessaire, mais seulement si différente
     if (data.initialValue !== undefined) {
-      useCounterValuesStore.getState().setValue(id, data.initialValue);
+      const currentValue = useCounterValuesStore.getState().getValue(id);
+      if (currentValue !== data.initialValue) {
+        useCounterValuesStore.getState().setValue(id, data.initialValue);
+      }
     }
   }, [id, data.initialValue]);
 

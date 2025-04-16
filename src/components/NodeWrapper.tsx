@@ -38,7 +38,7 @@ const statusIcons = {
   validated: <CheckCircle2 className="h-3 w-3 text-yellow-500" />,
 };
 
-export const NodeWrapper = ({ children, nodeId, isExecuting, status = 'idle' }: NodeWrapperProps) => {
+export const NodeWrapper = React.memo(({ children, nodeId, isExecuting, status = 'idle' }: NodeWrapperProps) => {
   const { duplicateNode, deleteNode, executeNode } = useWorkflowStore();
   const [isFocused, setIsFocused] = useState(false);
 
@@ -135,4 +135,4 @@ export const NodeWrapper = ({ children, nodeId, isExecuting, status = 'idle' }: 
         </ContextMenu.Portal>
     </ContextMenu.Root>
   );
-};
+});

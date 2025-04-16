@@ -1,0 +1,64 @@
+/* Styles pour le mode sombre de ReactFlow */
+
+/* Fond principal */
+.dark .react-flow {
+  background-color: #111827;
+}
+
+/* Grille et points */
+.dark .react-flow__background {
+  background-color: #111827;
+}
+
+.dark .react-flow__background path {
+  stroke: #374151;
+}
+
+/* Edges (liens) */
+.dark .react-flow__edge-path {
+  stroke: #60a5fa;
+  stroke-width: 1.5px;
+}
+
+.dark .react-flow__edge.selected .react-flow__edge-path {
+  stroke: #3b82f6;
+  stroke-width: 2.5px;
+  filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.5));
+}
+
+/* Nodes */
+.dark .react-flow__node {
+  filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.3));
+}
+
+/* Contrôles */
+.dark .react-flow__controls {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
+.dark .react-flow__controls-button {
+  background-color: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+.dark .react-flow__controls-button:hover {
+  background-color: #374151;
+}
+
+/* Minimap */
+.dark .react-flow__minimap {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
+/* Bouton de suppression des edges */
+.dark .edge-delete-button circle {
+  fill: #1f2937;
+  stroke: #4b5563;
+}
+
+.dark .edge-delete-button:hover circle {
+  fill: #374151;
+}

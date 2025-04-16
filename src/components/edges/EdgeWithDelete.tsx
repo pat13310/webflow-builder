@@ -3,6 +3,26 @@ import { EdgeProps } from 'reactflow';
 import { X } from 'lucide-react';
 import useWorkflowStore from '../../store/workflowStore';
 
+// Fonction utilitaire locale pour générer un path step (escalier)
+function getStepEdgePath({
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+}: {
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+}) {
+  const midX = sourceX + (targetX - sourceX) / 2;
+  const edgePath = `M${sourceX},${sourceY} L${midX},${sourceY} L${midX},${targetY} L${targetX},${targetY}`;
+  // Position du label au centre du segment vertical
+  const labelX = midX;
+  const labelY = sourceY + (targetY - sourceY) / 2;
+  return [edgePath, labelX, labelY];
+}
+
 const EdgeWithDelete = React.memo(function EdgeWithDelete({
   id,
   sourceX,
@@ -15,35 +35,17 @@ const EdgeWithDelete = React.memo(function EdgeWithDelete({
 }: EdgeProps) {
   const deleteEdge = useWorkflowStore((state) => state.deleteEdge);
 
-  // Courbe de Bézier par défaut pour les edges
-  const dx = targetX - sourceX;
-  const dy = targetY - sourceY;
-  const distance = Math.sqrt(dx * dx + dy * dy);
+  // Utilisation du style step (escalier) pour les edges (fonction locale)
+  const [edgePath, labelX, labelY] = getStepEdgePath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+  });
 
-  // Calcul de l'angle et de l'orientation
-  const angle = Math.atan2(dy, dx);
-  const isVertical = Math.abs(angle) > Math.PI / 4 && Math.abs(angle) < (3 * Math.PI) / 4;
-
-  // Ajustement des points de contrôle selon l'orientation
-  const controlDistance = Math.min(distance * 0.25, 50);
-  let [controlX1, controlY1, controlX2, controlY2] = [sourceX, sourceY, targetX, targetY];
-
-  if (isVertical) {
-    controlY1 = sourceY + (dy > 0 ? controlDistance : -controlDistance);
-    controlY2 = targetY + (dy > 0 ? -controlDistance : controlDistance);
-    controlX1 = controlX2 = sourceX + dx * 0.5;
-  } else {
-    controlX1 = sourceX + (dx > 0 ? controlDistance : -controlDistance);
-    controlX2 = targetX + (dx > 0 ? -controlDistance : controlDistance);
-    controlY1 = controlY2 = sourceY + dy * 0.5;
-  }
-
-  // Position du bouton au milieu de la courbe
-  const t = 0.5;
-  const curveX = sourceX + dx * t;
-  const curveY = sourceY + dy * t;
-
-  const edgePath = `M${sourceX},${sourceY} C${controlX1},${controlY1} ${controlX2},${controlY2} ${targetX},${targetY}`;
+  // Position du bouton de suppression (proche du centre du lien)
+  const curveX = labelX;
+  const curveY = labelY;
 
   const handleDelete = (evt: React.MouseEvent) => {
     evt.preventDefault();
@@ -51,19 +53,19 @@ const EdgeWithDelete = React.memo(function EdgeWithDelete({
     deleteEdge(id);
   };
 
-
   return (
     <>
       <path
-        id={id}
-        className="react-flow__edge-path"
-        d={edgePath}
+        id={id !== undefined ? String(id) : undefined}
+        className="react-flow__edge-path dark:opacity-90"
+        d={typeof edgePath === 'string' ? edgePath : String(edgePath)}
         markerEnd={markerEnd}
         style={{
           ...style,
-          strokeWidth: data?.selected ? 2 : 1,
+          strokeWidth: data?.selected ? 2.5 : 1.5,
           stroke: data?.selected ? '#3b82f6' : '#94a3b8',
-          transition: 'none'
+          transition: 'none',
+          filter: data?.selected ? 'drop-shadow(0 0 2px rgba(59, 130, 246, 0.5))' : 'none',
         }}
       />
       <g
@@ -74,7 +76,7 @@ const EdgeWithDelete = React.memo(function EdgeWithDelete({
         style={{
           cursor: 'pointer',
           pointerEvents: 'all',
-          filter: data?.selected ? 'drop-shadow(0 0 2px #3b82f6)' : 'none'
+          filter: data?.selected ? 'drop-shadow(0 0 2px #3b82f6)' : 'none',
         }}
       >
         <g transform="translate(-6 -6)">

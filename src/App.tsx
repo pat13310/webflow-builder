@@ -16,6 +16,7 @@ import ReactFlow, {
 import { motion, AnimatePresence } from 'framer-motion';
 import 'reactflow/dist/style.css';
 import './styles/edges.css';
+import './styles/dark-theme.css';
 
 // Lazy load components
 const Header = lazy(() => import('./components/Header.tsx'));
@@ -61,13 +62,25 @@ function Flow() {
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes(nds => {
       const newNodes = applyNodeChanges(changes, nds);
-      return newNodes.map(node => ({
-        ...node,
-        position: {
-          x: Math.round(node.position.x),
-          y: Math.round(node.position.y)
+      
+      // N'arrondir que si les positions ont réellement changé
+      return newNodes.map(node => {
+        const roundedX = Math.round(node.position.x);
+        const roundedY = Math.round(node.position.y);
+        
+        // Vérifier si l'arrondi est nécessaire
+        if (roundedX === node.position.x && roundedY === node.position.y) {
+          return node; // Pas besoin d'arrondir, évite la boucle infinie
         }
-      }));
+        
+        return {
+          ...node,
+          position: {
+            x: roundedX,
+            y: roundedY
+          }
+        };
+      });
     });
   }, [setNodes]);
 
@@ -179,6 +192,7 @@ function Flow() {
               onDragOver={onDragOver}
               onDrop={onDrop}
               defaultEdgeOptions={edgeOptions}
+              className="dark:bg-gray-900 dark:text-white transition-colors duration-200"
               onEdgeClick={useCallback((evt: { preventDefault: () => void; }, edge: { id: React.SetStateAction<string | null>; }) => {
                 evt.preventDefault();
                 setSelectedEdge(edge.id);
@@ -195,9 +209,10 @@ function Flow() {
               fitView
             >
               <Background
-                color={isDark ? "#1f2937" : "#e5e7eb"}
+                color={isDark ? "#374151" : "#e5e7eb"}
                 gap={16}
                 size={1}
+                className="dark:bg-gray-900"
               />
               <Controls className="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700" />
             </ReactFlow>
