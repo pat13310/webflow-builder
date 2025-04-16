@@ -1,17 +1,21 @@
-import React, { useCallback, useRef, useState, lazy, Suspense } from 'react';
+import React, { useCallback, useRef, useState, lazy, Suspense,  useMemo } from 'react';
+
 import { NodeChange, EdgeChange } from 'reactflow';
 import ReactFlow, {
-  Background,
   Controls,
+  Background,
+  addEdge,
   Connection,
-  useReactFlow,
+  Edge,
   Node,
+  useReactFlow,
   applyNodeChanges,
   applyEdgeChanges,
-  Edge,
 } from 'reactflow';
+// PropertiesPanel est importé via lazy loading
 import { motion, AnimatePresence } from 'framer-motion';
 import 'reactflow/dist/style.css';
+import './styles/edges.css';
 
 // Lazy load components
 const Header = lazy(() => import('./components/Header.tsx'));
@@ -20,32 +24,64 @@ const PropertiesPanel = lazy(() => import('./components/PropertiesPanel.tsx'));
 
 
 import { nodeTypes } from './components/NodeTypes.tsx';
+import type { NodeTypes } from './components/nodes/nodeTypes';
+import EdgeWithDelete from './components/edges/EdgeWithDelete';
 import useWorkflowStore from './store/workflowStore.ts';
+import useCounterStore from './store/counterStore.ts'; 
 import { useTheme } from './hooks/useTheme.ts';
 import FancyLoader from './components/FancyLoader.tsx';
+import { isValidNodeType } from './store/workflowStore.ts';
+
+// Définition des types de bords et options en dehors du composant pour éviter les re-rendus
+const edgeTypes = {
+  default: EdgeWithDelete,
+} as const;
 
 const edgeOptions = {
   style: { stroke: '#94a3b8', strokeWidth: 1 },
   type: 'smoothstep',
   animated: false,
-};
+} as const;
 
 function Flow() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
-  const { nodes, edges, setNodes, setEdges, addNode, addEdge, updateNodeData, incrementNodeExecutionCounter } = useWorkflowStore();
+  const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
+  const { nodes, edges, setNodes, setEdges, addNode, updateNodeData } = useWorkflowStore();
 
-  const onNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      setNodes((nds) => applyNodeChanges(changes, nds));
-    },
-    [setNodes]
+  // Mise à jour des edges avec la classe selected
+  const edgesWithSelection = useMemo(() => 
+    edges.map(edge => ({
+      ...edge,
+      selected: edge.id === selectedEdge
+    })),
+    [edges, selectedEdge]
   );
 
-  const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [setEdges]
-  );
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes(nds => {
+      const newNodes = applyNodeChanges(changes, nds);
+      return newNodes.map(node => ({
+        ...node,
+        position: {
+          x: Math.round(node.position.x),
+          y: Math.round(node.position.y)
+        }
+      }));
+    });
+  }, [setNodes]);
+
+  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
+    for (const change of changes) {
+      if (change.type === 'select') {
+        setSelectedEdge(change.selected ? change.id : null);
+        return;
+      }
+    }
+    requestAnimationFrame(() => {
+      setEdges(eds => applyEdgeChanges(changes, eds));
+    });
+  }, [setEdges, setSelectedEdge]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -54,14 +90,14 @@ function Flow() {
           id: `edge-${params.source}-${params.target}`,
           source: params.source,
           target: params.target,
-          type: 'smoothstep',
+          type: 'default',
           sourceHandle: params.sourceHandle || undefined,
           targetHandle: params.targetHandle || undefined
         };
-        setEdges((eds) => [...eds, edge]);
+        setEdges(addEdge(edge, edges));
       }
     },
-    [setEdges]
+    [edges, setEdges]
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -75,18 +111,21 @@ function Flow() {
 
       if (!reactFlowWrapper.current) return;
 
-      const type = event.dataTransfer.getData('application/reactflow');
+      const droppedType = event.dataTransfer.getData('application/reactflow');
+      if (!isValidNodeType(droppedType)) return;
+
+      const type = droppedType as NodeTypes;
       const position = screenToFlowPosition({
         x: event.clientX - reactFlowWrapper.current.getBoundingClientRect().left,
         y: event.clientY - reactFlowWrapper.current.getBoundingClientRect().top,
       });
 
       // Récupérer le compteur actuel
-      const currentCounter = useWorkflowStore.getState().nodeExecutionCounters.get(type) || 0;
+      const currentCounter = useCounterStore.getState().getNodeExecutionCount(type);
       const newNodeId = currentCounter + 1;
       
       // Mettre à jour le compteur
-      incrementNodeExecutionCounter(type);
+      useCounterStore.getState().incrementNodeCounter(type as NodeTypes);
       const newNode = {
         id: `${type}-${newNodeId}`,
         type,
@@ -99,7 +138,7 @@ function Flow() {
 
       addNode(newNode);
     },
-    [screenToFlowPosition, addNode, incrementNodeExecutionCounter]
+    [screenToFlowPosition, addNode]
   );
 
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -131,16 +170,28 @@ function Flow() {
             {/* ReactFlow, pas lazy ici car central et critique */}
             <ReactFlow
               nodes={nodes}
-              edges={edges}
+              edges={edgesWithSelection}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
               onDragOver={onDragOver}
               onDrop={onDrop}
-              nodeTypes={nodeTypes}
               defaultEdgeOptions={edgeOptions}
-              onNodeClick={(_, node) => setSelectedNode(node)}
-              onPaneClick={() => setSelectedNode(null)}
+              onEdgeClick={useCallback((evt: { preventDefault: () => void; }, edge: { id: React.SetStateAction<string | null>; }) => {
+                evt.preventDefault();
+                setSelectedEdge(edge.id);
+              }, [setSelectedEdge])}
+              onNodeClick={useCallback((evt: { preventDefault: () => void; }, node: React.SetStateAction<Node | null>) => {
+                evt.preventDefault();
+                setSelectedNode(node);
+              }, [setSelectedNode])}
+              onPaneClick={useCallback((evt: { preventDefault: () => void; }) => {
+                evt.preventDefault();
+                setSelectedNode(null);
+                setSelectedEdge(null);
+              }, [setSelectedNode, setSelectedEdge])}
               fitView
             >
               <Background
@@ -151,6 +202,7 @@ function Flow() {
               <Controls className="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700" />
             </ReactFlow>
           </div>
+
           <AnimatePresence>
             {selectedNode && (
               <motion.div
@@ -169,6 +221,7 @@ function Flow() {
                     selectedNode={selectedNode}
                     onNodeUpdate={updateNodeData}
                   />
+
                 </Suspense>
               </motion.div>
             )}

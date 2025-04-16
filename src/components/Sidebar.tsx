@@ -182,8 +182,8 @@ const Sidebar = () => {
         <NodeCategory title="Output" index={5}>
           <NodeItem
             icon={FileText}
-            label="Output"
-            type="output"
+            label="Console"
+            type="console"
             color="bg-emerald-100 text-emerald-600 dark:bg-emerald-900 dark:text-emerald-300"
           />
         </NodeCategory>

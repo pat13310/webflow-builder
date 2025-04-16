@@ -1,0 +1,41 @@
+// Dans la section 'else' de votre fonction executeNode, après la logique ifCondition, 
+// ajoutez ce code pour gérer les nœuds de base de données :
+
+else if (node.type === 'database') {
+  console.log(`Exécution du nœud de base de données ${nodeId}`);
+  
+  try {
+    // Import dynamique pour éviter des problèmes de dépendances circulaires
+    const { executeDatabaseNode } = await import('./databaseNodeExecutor');
+    
+    // Récupérer les données d'entrée
+    const inputData = node.data?.input || {};
+    
+    // Exécuter l'opération de base de données
+    const result = await executeDatabaseNode(node.data, inputData);
+    
+    // Mettre à jour les données du nœud avec le résultat
+    get().updateNodeData(nodeId, { ...node.data, output: result });
+    
+    // Mettre à jour le statut du nœud
+    updateNodeStatus(nodeId, 'success');
+    
+    // Exécuter les nœuds suivants avec le résultat en entrée
+    const outgoingEdges = edges.filter(e => e.source === nodeId);
+    for (const edge of outgoingEdges) {
+      if (!shouldContinue || !get().isExecuting) break;
+      
+      // Trouver le nœud cible
+      const targetNode = nodes.find(n => n.id === edge.target);
+      if (targetNode) {
+        // Mettre à jour les données du nœud cible avec le résultat en entrée
+        get().updateNodeData(targetNode.id, { ...targetNode.data, input: result });
+        await get().executeNode(edge.target, context);
+      }
+    }
+  } catch (error) {
+    console.error(`Erreur durant l'exécution du nœud de base de données ${nodeId}:`, error);
+    updateNodeStatus(nodeId, 'error');
+    get().updateNodeData(nodeId, { ...node.data, error: error.message });
+  }
+}

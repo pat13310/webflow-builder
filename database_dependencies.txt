@@ -1,0 +1,8 @@
+// Ajoutez ces dépendances à votre package.json dans la section "dependencies" :
+
+"pg": "^8.11.3",
+"mysql2": "^3.6.1",
+"mongodb": "^6.1.0",
+"redis": "^4.6.10",
+"sqlite": "^5.0.1",
+"sqlite3": "^5.1.6"

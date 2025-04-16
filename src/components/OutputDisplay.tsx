@@ -4,56 +4,46 @@ import DOMPurify from 'dompurify';
 
 interface OutputDisplayProps {
   content?: string;
-  format?: 'html' | 'markdown' | 'text';
+  format?: 'html' | 'markdown' | 'text' | 'json';
 }
 
 const OutputDisplay: React.FC<OutputDisplayProps> = ({ content = '', format = 'text' }) => {
-  const [parsedContent, setParsedContent] = React.useState<string>(content);
-  const sanitizedContent = DOMPurify.sanitize(content);
-
-  React.useEffect(() => {
-    const parseContent = async () => {
-      if (format === 'markdown') {
-        const markdownContent = await marked(content);
-        setParsedContent(DOMPurify.sanitize(markdownContent));
-      } else {
-        setParsedContent(content);
-      }
-    };
-    parseContent();
+  // Formater le contenu selon le format
+  const formattedContent = React.useMemo(() => {
+    if (!content) return 'Pas de contenu';
+    
+    switch (format) {
+      case 'json':
+        try {
+          const obj = JSON.parse(content);
+          return JSON.stringify(obj, null, 1);
+        } catch {
+          return content;
+        }
+      case 'markdown':
+      case 'html':
+        if (format === 'markdown') {
+          const parsed = marked.parse(content);
+          return typeof parsed === 'string' ? DOMPurify.sanitize(parsed) : content;
+        }
+        return DOMPurify.sanitize(content);
+      default:
+        return content;
+    }
   }, [content, format]);
 
-  const renderContent = () => {
-    switch (format) {
-      case 'html':
-        return (
-          <div 
-            className="prose prose-sm dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-          />
-        );
-      case 'markdown':
-        return (
-          <div 
-            className="prose prose-sm dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: parsedContent }}
-          />
-        );
-      case 'text':
-      default:
-        return (
-          <pre className="text-3xs text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-mono">
-            {content}
-          </pre>
-        );
-    }
-  };
+  if (format === 'html' || format === 'markdown') {
+    return (
+      <div 
+        className="prose prose-sm dark:prose-invert max-w-none font-mono text-[6px]"
+        dangerouslySetInnerHTML={{ __html: formattedContent }}
+      />
+    );
+  }
 
   return (
-    <div className="text-3xs">
-      {content ? renderContent() : (
-        <div className="text-gray-400 dark:text-gray-600 italic">No content</div>
-      )}
+    <div className="font-mono text-[6px] whitespace-pre-wrap">
+      {formattedContent}
     </div>
   );
 };

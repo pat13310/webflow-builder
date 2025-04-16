@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Trash, Play, Edit, MoreHorizontal, CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Copy, Trash, Play, CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import useWorkflowStore from '../store/workflowStore';
 
 interface NodeWrapperProps {
   children: React.ReactNode;
   nodeId: string;
   isExecuting?: boolean;
-  status?: 'idle' | 'running' | 'success' | 'error' | 'warning';
+  status?: 'idle' | 'running' | 'success' | 'error' | 'warning' | 'validated';
 }
 
 const statusColors = {
@@ -17,31 +17,34 @@ const statusColors = {
   success: 'bg-green-50 dark:bg-green-900/20',
   error: 'bg-red-50 dark:bg-red-900/20',
   warning: 'bg-yellow-50 dark:bg-yellow-900/20',
+  validated: 'bg-yellow-50 dark:bg-yellow-900/20',
 };
 
 const statusRings = {
   idle: '',
-  running: 'ring-1 ring-blue-400/20 dark:ring-blue-400/10',
-  success: 'ring-1 ring-green-400/20 dark:ring-green-400/10',
-  error: 'ring-1 ring-red-400/20 dark:ring-red-400/10',
-  warning: 'ring-1 ring-yellow-400/20 dark:ring-yellow-400/10',
+  running: 'ring-2 ring-blue-500/50',
+  success: 'ring-2 ring-green-500/50',
+  error: 'ring-2 ring-red-500/50',
+  warning: 'ring-2 ring-yellow-500/50',
+  validated: 'ring-2 ring-yellow-500/50',
 };
 
 const statusIcons = {
-  running: <Loader2 className="w-3 h-3 text-blue-500 animate-spin" />,
-  success: <CheckCircle2 className="w-3 h-3 text-green-500" />,
-  error: <XCircle className="w-3 h-3 text-red-500" />,
-  warning: <AlertCircle className="w-3 h-3 text-yellow-500" />,
+  idle: null,
+  running: <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />,
+  success: <CheckCircle2 className="h-3 w-3 text-green-500" />,
+  error: <XCircle className="h-3 w-3 text-red-500" />,
+  warning: <AlertCircle className="h-3 w-3 text-yellow-500" />,
+  validated: <CheckCircle2 className="h-3 w-3 text-yellow-500" />,
 };
 
 export const NodeWrapper = ({ children, nodeId, isExecuting, status = 'idle' }: NodeWrapperProps) => {
   const { duplicateNode, deleteNode, executeNode } = useWorkflowStore();
-  const [showMenu, setShowMenu] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
   return (
-    <ContextMenu.Root onOpenChange={setShowMenu}>
-      <ContextMenu.Trigger>
+    <ContextMenu.Root>
+      <ContextMenu.Trigger asChild>
         <motion.div
           initial={false}
           variants={{
@@ -59,7 +62,7 @@ export const NodeWrapper = ({ children, nodeId, isExecuting, status = 'idle' }: 
           }}
           animate={isExecuting ? "executing" : "idle"}
           className={`relative ${statusColors[status]} ${statusRings[status]} rounded-md transition-all duration-200`}
-          onClick={() => setIsFocused(true)}
+          onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           tabIndex={0}
         >
@@ -84,7 +87,7 @@ export const NodeWrapper = ({ children, nodeId, isExecuting, status = 'idle' }: 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute -inset-[2px] rounded-lg pointer-events-none ring-1 ring-blue-500/15 dark:ring-blue-400/20"
+                className="absolute -inset-[1px] rounded-md pointer-events-none ring-1 ring-emerald-500/20 dark:ring-emerald-400/30"
               />
             )}
           </AnimatePresence>
@@ -98,9 +101,8 @@ export const NodeWrapper = ({ children, nodeId, isExecuting, status = 'idle' }: 
         </motion.div>
       </ContextMenu.Trigger>
 
-      {showMenu && (
-        <ContextMenu.Portal>
-          <ContextMenu.Content
+      <ContextMenu.Portal>
+        <ContextMenu.Content
             className="min-w-[140px] bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1 text-xs"
             onClick={(e) => e.stopPropagation()}
           >
@@ -131,7 +133,6 @@ export const NodeWrapper = ({ children, nodeId, isExecuting, status = 'idle' }: 
             </ContextMenu.Item>
           </ContextMenu.Content>
         </ContextMenu.Portal>
-      )}
     </ContextMenu.Root>
   );
 };

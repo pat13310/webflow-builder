@@ -185,7 +185,7 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate }: PropertiesPanelProps) =
       case 'schedule':
         return <ScheduleProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />;
       case 'database':
-        return <DatabaseProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />;
+        return <DatabaseProperties nodeId={selectedNode.id} data={currentFormData} onNodeUpdate={handlePropertyChange} />;
       case 'pushButton':
         return <PushButtonProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />;
       case 'counter':

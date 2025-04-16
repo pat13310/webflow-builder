@@ -4,18 +4,25 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --debug",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "webhook": "tsx watch src/server/startWebhookServer.ts"
+    "webhook": "ts-node -P server/tsconfig.server.json server/startWebhookServer.ts",
+    "server": "ts-node -P server/tsconfig.server.json server/server.ts"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
     "@google/generative-ai": "^0.2.1",
     "@radix-ui/react-context-menu": "^2.1.5",
+    "@radix-ui/react-dialog": "^1.1.7",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
+    "@types/mongodb": "^4.0.6",
+    "@types/mysql": "^2.15.27",
+    "@types/pg": "^8.11.11",
+    "@types/redis": "^4.0.10",
+    "@types/sqlite3": "^3.1.11",
     "@types/ws": "^8.18.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
@@ -26,18 +33,25 @@
     "lowdb": "^7.0.1",
     "lucide-react": "^0.344.0",
     "marked": "^12.0.2",
+    "mongodb": "^6.15.0",
+    "mysql2": "^2.3.3",
+    "pg": "^8.14.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-icons": "^5.5.0",
     "reactflow": "^11.10.4",
+    "redis": "^4.7.0",
+    "sqlite3": "^5.1.7",
     "tailwind-merge": "^2.2.1",
     "ws": "^8.18.1",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@originjs/vite-plugin-commonjs": "^1.0.3",
     "@types/dompurify": "^3.2.0",
     "@types/lowdb": "^1.0.15",
-    "@types/node": "^22.14.0",
+    "@types/node": "^22.14.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
@@ -54,6 +68,7 @@
     "tsx": "^4.19.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.3.0",
-    "vite": "^5.4.2"
+    "vite": "^5.4.2",
+    "vite-plugin-node-polyfills": "^0.23.0"
   }
 }

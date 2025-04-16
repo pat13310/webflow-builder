@@ -1,0 +1,49 @@
+.edge-delete-button {
+  opacity: 0;
+  pointer-events: all;
+  transition: opacity 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.edge-delete-button g {
+  transform-origin: center;
+  transform-box: fill-box;
+  pointer-events: none;
+}
+
+.edge-delete-button circle {
+  pointer-events: all;
+}
+
+.edge-delete-button:hover circle {
+  filter: brightness(0.75);
+  transition: transform 0.2s ease;
+}
+
+.react-flow__edge {
+  pointer-events: all !important;
+  cursor: pointer;
+}
+
+.react-flow__edge:hover .edge-delete-button,
+.react-flow__edge:focus .edge-delete-button,
+.react-flow__edge.selected .edge-delete-button {
+  opacity: 1;
+}
+
+.react-flow__edge-path {
+  stroke: #94a3b8;
+  stroke-width: 1px;
+  transition: all 0.2s ease;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: #0db0f635;
+  stroke-width: 2px;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #5894f6;
+  stroke-width: 1.5px;
+}

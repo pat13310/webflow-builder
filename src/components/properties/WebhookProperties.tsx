@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Copy, Check, CheckCircle } from 'lucide-react';
-
-const WS_URL = 'ws://localhost:3002';
+import { registerWebhook } from '../../store/webhookStore';
 
 interface WebhookPropertiesProps {
   nodeId: string;
@@ -24,19 +23,19 @@ const WebhookProperties: React.FC<WebhookPropertiesProps> = ({
   onWebhookValidate,
 }) => {
   const [copied, setCopied] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
   const pathRef = useRef(data.path || Math.random().toString(36).substring(2, 10));
   const initializedRef = useRef(false);
 
   // Mémorise les données webhook actuelles
   const webhookData = useMemo(() => ({
+    nodeId: `webhook-${nodeId}`,
     path: data.path || pathRef.current,
     method: data.method || 'GET',
     body: data.body || '{}',
     headers: data.headers || { 'Content-Type': 'application/json' },
     queryParams: data.queryParams || {},
     isValidated: data.isValidated || false,
-  }), [data]);
+  }), [data, nodeId]);
 
   // Initialiser le path une seule fois
   useEffect(() => {
@@ -46,40 +45,61 @@ const WebhookProperties: React.FC<WebhookPropertiesProps> = ({
     }
   }, [data.path, onNodeUpdate]);
 
-  // Connexion WebSocket
-  useEffect(() => {
-    wsRef.current = new WebSocket(WS_URL);
+  const handleRegisterWebhook = async () => {
+    try {
+      if (!nodeId || typeof nodeId !== 'string') {
+        console.error('nodeId invalide:', nodeId);
+        return;
+      }
 
-    wsRef.current.onopen = () => {
-      const message = {
-        type: 'register',
-        webhook: {
-          nodeId,
-          path: webhookData.path,
-          method: webhookData.method,
-          headers: webhookData.headers,
-          queryParams: webhookData.queryParams,
-          isValidated: webhookData.isValidated,
-        },
+      // Vérifier que toutes les données requises sont présentes
+      const webhookDataToSend = {
+        nodeId: webhookData.nodeId, // Déjà préfixé avec webhook-
+        path: webhookData.path,
+        method: webhookData.method,
+        body: webhookData.body,
+        headers: webhookData.headers,
+        queryParams: webhookData.queryParams,
+        isValidated: webhookData.isValidated
       };
-      wsRef.current?.send(JSON.stringify(message));
-    };
 
-    wsRef.current.onmessage = (event) => {
-      const wsData = JSON.parse(event.data);
-      if (wsData.type === 'webhook_validated' && wsData.nodeId === nodeId) {
-        onNodeUpdate('isValidated', true);
+      console.log('Enregistrement du webhook avec les données:', webhookDataToSend);
+
+      console.log('Enregistrement du webhook avec nodeId:', nodeId);
+      try {
+        await registerWebhook(webhookDataToSend);
+        console.log('Webhook enregistré avec succès');
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement du webhook:', error);
+        // Gérer l'erreur ici (par exemple, afficher un message à l'utilisateur)
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement du webhook:', error);
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const register = async () => {
+      try {
+        if (isMounted) {
+          await handleRegisterWebhook();
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement du webhook:', error);
       }
     };
 
+    register();
+
     return () => {
-      wsRef.current?.close();
-      wsRef.current = null;
+      isMounted = false;
     };
-  }, [nodeId]); // ne se déclenche qu'une fois par nodeId
+  }, [nodeId, webhookData]);
 
   const handleCopyUrl = useCallback(() => {
-    const url = `http://localhost:3002/webhook/webflow/${webhookData.path}`;
+    const url = `${import.meta.env.VITE_WEBHOOK_SERVER_URL}/webhook/webflow/${webhookData.path}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -96,7 +116,7 @@ const WebhookProperties: React.FC<WebhookPropertiesProps> = ({
       <div className="flex items-center gap-2 mb-4">
         <input
           type="text"
-          value={`http://localhost:3002/webhook/webflow/${webhookData.path}`}
+          value={`${import.meta.env.VITE_WEBHOOK_SERVER_URL}/webhook/webflow/${webhookData.path}`}
           readOnly
           className="flex-1 p-2 border rounded"
         />

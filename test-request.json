@@ -1,0 +1,8 @@
+{
+  "options": {
+    "databaseType": "sqlite",
+    "connection": "./data/default.db",
+    "operation": "query",
+    "query": "SELECT projects.*, users.name as user_name, users.email as user_email FROM projects LEFT JOIN users ON projects.user_id = users.id"
+  }
+}
