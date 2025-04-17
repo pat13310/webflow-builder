@@ -3,8 +3,8 @@ import { EdgeProps } from 'reactflow';
 import { X } from 'lucide-react';
 import useWorkflowStore from '../../store/workflowStore';
 
-// Fonction utilitaire locale pour générer un path step (escalier)
-function getStepEdgePath({
+// Fonction utilitaire locale pour générer un path Bezier
+function getBezierEdgePath({
   sourceX,
   sourceY,
   targetX,
@@ -15,10 +15,10 @@ function getStepEdgePath({
   targetX: number;
   targetY: number;
 }) {
-  const midX = sourceX + (targetX - sourceX) / 2;
-  const edgePath = `M${sourceX},${sourceY} L${midX},${sourceY} L${midX},${targetY} L${targetX},${targetY}`;
-  // Position du label au centre du segment vertical
-  const labelX = midX;
+  const offsetX = Math.abs(targetX - sourceX) * 0.4;
+  const edgePath = `M${sourceX},${sourceY} C${sourceX + offsetX},${sourceY} ${targetX - offsetX},${targetY} ${targetX},${targetY}`;
+  // Position du label au milieu de la courbe
+  const labelX = sourceX + (targetX - sourceX) / 2;
   const labelY = sourceY + (targetY - sourceY) / 2;
   return [edgePath, labelX, labelY];
 }
@@ -35,8 +35,8 @@ const EdgeWithDelete = React.memo(function EdgeWithDelete({
 }: EdgeProps) {
   const deleteEdge = useWorkflowStore((state) => state.deleteEdge);
 
-  // Utilisation du style step (escalier) pour les edges (fonction locale)
-  const [edgePath, labelX, labelY] = getStepEdgePath({
+  // Utilisation du style Bezier pour les edges (fonction locale)
+  const [edgePath, labelX, labelY] = getBezierEdgePath({
     sourceX,
     sourceY,
     targetX,

@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { MousePointer, RefreshCw, Save, ChevronRight, X } from 'lucide-react'; // Changed ChevronDown to ChevronRight
 import { Node } from 'reactflow';
-import WebhookProperties from './properties/WebhookProperties';
-import AIAgentProperties from './properties/AIAgentProperties';
-import HttpRequestProperties from './properties/HttpRequestProperties';
-import ScheduleProperties from './properties/ScheduleProperties';
-import DatabaseProperties from './properties/DatabaseProperties';
-import PushButtonProperties from './properties/PushButtonProperties';
-import CounterProperties from './properties/CounterProperties';
-import OutputProperties from './properties/OutputProperties';
 import useWorkflowStore from '../store/workflowStore';
+import FancyLoader from './FancyLoader';
+
+// Lazy loading pour les composants de propriétés
+const WebhookProperties = lazy(() => import('./properties/WebhookProperties'));
+const AIAgentProperties = lazy(() => import('./properties/AIAgentProperties'));
+const HttpRequestProperties = lazy(() => import('./properties/HttpRequestProperties'));
+const ScheduleProperties = lazy(() => import('./properties/ScheduleProperties'));
+const DatabaseProperties = lazy(() => import('./properties/DatabaseProperties'));
+const PushButtonProperties = lazy(() => import('./properties/PushButtonProperties'));
+const CounterProperties = lazy(() => import('./properties/CounterProperties'));
+const OutputProperties = lazy(() => import('./properties/OutputProperties'));
 
 interface PropertiesPanelProps {
   selectedNode: Node | null;
@@ -174,24 +177,63 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate }: PropertiesPanelProps) =
 
   const nodeTypeLabel = formatNodeTypeLabel(selectedNode.type);
 
+  // Composant de chargement pour les propriétés
+  const PropertiesLoader = () => (
+    <div className="p-4 flex items-center justify-center">
+      <FancyLoader message="Chargement des propriétés..." />
+    </div>
+  );
+
   const renderProperties = () => {
     switch (selectedNode.type) {
       case 'webhook':
-        return <WebhookProperties nodeId={selectedNode.id} data={currentFormData} onNodeUpdate={handlePropertyChange} />;
+        return (
+          <Suspense fallback={<PropertiesLoader />}>
+            <WebhookProperties nodeId={selectedNode.id} data={currentFormData} onNodeUpdate={handlePropertyChange} />
+          </Suspense>
+        );
       case 'aiAgent':
-        return <AIAgentProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />;
+        return (
+          <Suspense fallback={<PropertiesLoader />}>
+            <AIAgentProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />
+          </Suspense>
+        );
       case 'httpRequest':
-        return <HttpRequestProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />;
+        return (
+          <Suspense fallback={<PropertiesLoader />}>
+            <HttpRequestProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />
+          </Suspense>
+        );
       case 'schedule':
-        return <ScheduleProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />;
+        return (
+          <Suspense fallback={<PropertiesLoader />}>
+            <ScheduleProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />
+          </Suspense>
+        );
       case 'database':
-        return <DatabaseProperties nodeId={selectedNode.id} data={currentFormData} onNodeUpdate={handlePropertyChange} />;
+        return (
+          <Suspense fallback={<PropertiesLoader />}>
+            <DatabaseProperties nodeId={selectedNode.id} data={currentFormData} onNodeUpdate={handlePropertyChange} />
+          </Suspense>
+        );
       case 'pushButton':
-        return <PushButtonProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />;
+        return (
+          <Suspense fallback={<PropertiesLoader />}>
+            <PushButtonProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />
+          </Suspense>
+        );
       case 'counter':
-        return <CounterProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />;
+        return (
+          <Suspense fallback={<PropertiesLoader />}>
+            <CounterProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />
+          </Suspense>
+        );
       case 'output':
-        return <OutputProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />;
+        return (
+          <Suspense fallback={<PropertiesLoader />}>
+            <OutputProperties selectedNode={selectedNode} onNodeUpdate={handlePropertyChange} formData={currentFormData} />
+          </Suspense>
+        );
       default:
         return <div className="p-4 text-sm text-gray-500 dark:text-gray-400">No specific properties for this node type.</div>;
     }

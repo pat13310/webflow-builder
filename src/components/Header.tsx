@@ -1,9 +1,13 @@
-import React, { useRef } from 'react';
-import { Play, Sun, Moon, Upload, Download, Square, Clock } from 'lucide-react';
+import React, { useRef, useState, lazy, Suspense } from 'react';
+import { Play, Sun, Moon, Upload, Download, Square, Clock, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../hooks/useTheme';
 import useWorkflowStore from '../store/workflowStore';
 import PushButton from './ui/PushButton';
+import FancyLoader from './FancyLoader';
+
+// Chargement paresseux de la boîte de dialogue des paramètres
+const SettingsDialog = lazy(() => import('./settings/SettingsDialog'));
 
 const Header = () => {
   const { isDark, toggleTheme } = useTheme();
@@ -19,6 +23,7 @@ const Header = () => {
     scheduleIntervals 
   } = useWorkflowStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleSave = async () => {
     try {
@@ -102,7 +107,8 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-white dark:bg-gray-900 py-2 px-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+    <>
+      <header className="bg-white dark:bg-gray-900 py-2 px-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
       <div className="flex items-center space-x-6">
         <div className="text-gray-900 dark:text-white font-bold text-lg flex items-center">
           <Play className="w-5 h-5 mr-2" />
@@ -111,7 +117,13 @@ const Header = () => {
         <nav className="flex space-x-4">
           <a href="#" className="text-blue-600 dark:text-blue-400 font-medium text-sm">Workflows</a>
           <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm">Templates</a>
-          <a href="#" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm">Settings</a>
+          <button 
+            onClick={() => setIsSettingsOpen(true)} 
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm flex items-center"
+          >
+            <Settings className="w-3.5 h-3.5 mr-1" />
+            Paramètres
+          </button>
         </nav>
       </div>
 
@@ -196,6 +208,23 @@ const Header = () => {
         )}
       </div>
     </header>
+
+      {/* Boîte de dialogue des paramètres */}
+      {isSettingsOpen && (
+        <Suspense fallback={
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8">
+              <FancyLoader message="Chargement des paramètres..." />
+            </div>
+          </div>
+        }>
+          <SettingsDialog 
+            isOpen={isSettingsOpen} 
+            onClose={() => setIsSettingsOpen(false)} 
+          />
+        </Suspense>
+      )}
+    </>
   );
 };
 

@@ -39,7 +39,12 @@ const statusIcons = {
 };
 
 export const NodeWrapper = React.memo(({ children, nodeId, isExecuting, status = 'idle' }: NodeWrapperProps) => {
-  const { duplicateNode, deleteNode, executeNode } = useWorkflowStore();
+  // Utiliser des fonctions individuelles du store pour éviter les re-rendus inutiles
+  const duplicateNode = useWorkflowStore(state => state.duplicateNode);
+  const deleteNode = useWorkflowStore(state => state.deleteNode);
+  const executeNode = useWorkflowStore(state => state.executeNode);
+  
+  // État pour le focus
   const [isFocused, setIsFocused] = useState(false);
 
   return (
@@ -93,9 +98,7 @@ export const NodeWrapper = React.memo(({ children, nodeId, isExecuting, status =
           </AnimatePresence>
 
           {/* Node content */}
-          <motion.div
-            className="relative"
-          >
+          <motion.div className="relative">
             {children}
           </motion.div>
         </motion.div>
@@ -103,36 +106,35 @@ export const NodeWrapper = React.memo(({ children, nodeId, isExecuting, status =
 
       <ContextMenu.Portal>
         <ContextMenu.Content
-            className="min-w-[140px] bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1 text-xs"
-            onClick={(e) => e.stopPropagation()}
+          className="min-w-[140px] bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1 text-xs z-[9999]"
+        >
+          <ContextMenu.Item
+            className="flex items-center px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            onSelect={() => duplicateNode(nodeId)}
           >
-            <ContextMenu.Item
-              className="flex items-center px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-              onClick={() => duplicateNode(nodeId)}
-            >
-              <Copy className="w-3 h-3 mr-1.5" />
-              Dupliquer
-            </ContextMenu.Item>
-            
-            <ContextMenu.Item
-              className="flex items-center px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-              onClick={() => executeNode(nodeId)}
-            >
-              <Play className="w-3 h-3 mr-1.5" />
-              Exécuter
-            </ContextMenu.Item>
+            <Copy className="w-3 h-3 mr-1.5" />
+            Dupliquer
+          </ContextMenu.Item>
+          
+          <ContextMenu.Item
+            className="flex items-center px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            onSelect={() => executeNode(nodeId)}
+          >
+            <Play className="w-3 h-3 mr-1.5" />
+            Exécuter
+          </ContextMenu.Item>
 
-            <ContextMenu.Separator className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
-            
-            <ContextMenu.Item
-              className="flex items-center px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
-              onClick={() => deleteNode(nodeId)}
-            >
-              <Trash className="w-3 h-3 mr-1.5" />
-              Supprimer
-            </ContextMenu.Item>
-          </ContextMenu.Content>
-        </ContextMenu.Portal>
+          <ContextMenu.Separator className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+          
+          <ContextMenu.Item
+            className="flex items-center px-2 py-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
+            onSelect={() => deleteNode(nodeId)}
+          >
+            <Trash className="w-3 h-3 mr-1.5" />
+            Supprimer
+          </ContextMenu.Item>
+        </ContextMenu.Content>
+      </ContextMenu.Portal>
     </ContextMenu.Root>
   );
 });

@@ -1,19 +1,25 @@
+import React, { lazy, Suspense } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import useWorkflowStore from '../store/workflowStore';
 import { NodeWrapper } from './NodeWrapper';
-import { ConsoleNode } from './nodes/ConsoleNode';
-import { DatabaseNode } from './nodes/DatabaseNode';
-import { CounterNode } from './nodes/CounterNode';
-import { WaitNode } from './nodes/WaitNode';
-import { AiAgentNode } from './nodes/AiAgentNode';
-import { SplitNode } from './nodes/SplitNode';
-import { IfConditionNode } from './nodes/IfConditionNode';
-import { DebugNode } from './nodes/DebugNode';
-import { ScheduleNode } from './nodes/ScheduleNode';
-import { EmailNode } from './nodes/EmailNode';
-import { WebhookNode } from './nodes/WebhookNode';
-import { HttpRequestNode } from './nodes/HttpRequestNode';
-import { PushButtonNode } from './nodes/PushButtonNode';
+import FancyLoader from './FancyLoader';
+
+// Import direct pour BaseNode car il est défini localement
+
+// Lazy loading pour les composants de nœuds
+const ConsoleNode = lazy(() => import('./nodes/ConsoleNode').then(module => ({ default: module.ConsoleNode })));
+const DatabaseNode = lazy(() => import('./nodes/DatabaseNode').then(module => ({ default: module.DatabaseNode })));
+const CounterNode = lazy(() => import('./nodes/CounterNode').then(module => ({ default: module.CounterNode })));
+const WaitNode = lazy(() => import('./nodes/WaitNode').then(module => ({ default: module.WaitNode })));
+const AiAgentNode = lazy(() => import('./nodes/AiAgentNode').then(module => ({ default: module.AiAgentNode })));
+const SplitNode = lazy(() => import('./nodes/SplitNode').then(module => ({ default: module.SplitNode })));
+const IfConditionNode = lazy(() => import('./nodes/IfConditionNode').then(module => ({ default: module.IfConditionNode })));
+const DebugNode = lazy(() => import('./nodes/DebugNode').then(module => ({ default: module.DebugNode })));
+const ScheduleNode = lazy(() => import('./nodes/ScheduleNode').then(module => ({ default: module.ScheduleNode })));
+const EmailNode = lazy(() => import('./nodes/EmailNode').then(module => ({ default: module.EmailNode })));
+const WebhookNode = lazy(() => import('./nodes/WebhookNode').then(module => ({ default: module.WebhookNode })));
+const HttpRequestNode = lazy(() => import('./nodes/HttpRequestNode').then(module => ({ default: module.HttpRequestNode })));
+const PushButtonNode = lazy(() => import('./nodes/PushButtonNode').then(module => ({ default: module.PushButtonNode })));
 
 export type BaseNodeData = {
   label: string;
@@ -71,20 +77,35 @@ const BaseNode = ({ id, data }: NodeProps<BaseNodeData>) => {
   );
 };
 
+// Composant de fallback pour les nœuds en cours de chargement
+const NodeFallback = ({ id }: { id: string }) => (
+  <NodeWrapper nodeId={id} isExecuting={false} status="idle">
+    <div className="shadow-sm rounded-lg bg-white dark:bg-gray-800 backdrop-blur-sm bg-opacity-95" style={{ width: '88px' }}>
+      <FancyLoader message="Chargement..." />
+    </div>
+  </NodeWrapper>
+);
+
+// Fonction d'enveloppement pour les nœuds avec Suspense
+const withSuspense = (Component: React.ComponentType<NodeProps>) => (props: NodeProps) => (
+  <Suspense fallback={<NodeFallback id={props.id} />}>
+    <Component {...props} />
+  </Suspense>
+);
+
 export const nodeTypes: Record<string, React.ComponentType<NodeProps>> = {
   base: BaseNode,
-  database: DatabaseNode,
-  console: ConsoleNode,
-  counter: CounterNode,
-  wait: WaitNode,
-  aiAgent: AiAgentNode,
-  split: SplitNode,
-  
-  ifCondition: IfConditionNode,
-  debug: DebugNode,
-  schedule: ScheduleNode,
-  email: EmailNode,
-  webhook: WebhookNode,
-  httpRequest: HttpRequestNode,
-  pushButton: PushButtonNode,
+  database: withSuspense(DatabaseNode),
+  console: withSuspense(ConsoleNode),
+  counter: withSuspense(CounterNode),
+  wait: withSuspense(WaitNode),
+  aiAgent: withSuspense(AiAgentNode),
+  split: withSuspense(SplitNode),
+  ifCondition: withSuspense(IfConditionNode),
+  debug: withSuspense(DebugNode),
+  schedule: withSuspense(ScheduleNode),
+  email: withSuspense(EmailNode),
+  webhook: withSuspense(WebhookNode),
+  httpRequest: withSuspense(HttpRequestNode),
+  pushButton: withSuspense(PushButtonNode),
 };

@@ -108,10 +108,38 @@ const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   // --- Manipulations de base du graphe ---
   setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => {
+    // Utiliser une fonction pour comparer les nœuds actuels avec les nouveaux
     set(
-      (state) => ({
-        nodes: typeof nodes === "function" ? nodes(state.nodes) : nodes
-      }),
+      (state) => {
+        const newNodes = typeof nodes === "function" ? nodes(state.nodes) : nodes;
+        
+        // Vérifier si le nombre de nœuds a changé
+        if (newNodes.length !== state.nodes.length) {
+          return { nodes: newNodes };
+        }
+        
+        // Vérifier si les positions ou d'autres propriétés importantes ont changé
+        let hasChanged = false;
+        
+        // Comparaison rapide des propriétés essentielles
+        for (let i = 0; i < newNodes.length; i++) {
+          const oldNode = state.nodes[i];
+          const newNode = newNodes[i];
+          
+          if (
+            oldNode.id !== newNode.id ||
+            oldNode.position.x !== newNode.position.x ||
+            oldNode.position.y !== newNode.position.y ||
+            oldNode.type !== newNode.type
+          ) {
+            hasChanged = true;
+            break;
+          }
+        }
+        
+        // Ne mettre à jour que si les nœuds ont réellement changé
+        return hasChanged ? { nodes: newNodes } : {};
+      },
       false
     );
   },
@@ -357,7 +385,7 @@ const useWorkflowStore = create<WorkflowState>((set, get) => ({
         if (!context.isScheduled) {
           useCounterStore.getState().incrementNodeCounter("pushButton");
         }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 500));
         state.updateNodeStatus(nodeId, "idle");
         executingNodes.delete(nodeId);
 
@@ -575,7 +603,7 @@ const useWorkflowStore = create<WorkflowState>((set, get) => ({
           // Mettre à jour la valeur
           counterStore.setValue(nodeId, newValue);
           state.updateNodeStatus(nodeId, "success");
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 200));
           state.updateNodeStatus(nodeId, "idle");
           executingNodes.delete(nodeId);
 

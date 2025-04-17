@@ -59,28 +59,11 @@ function Flow() {
     [edges, selectedEdge]
   );
 
+  // Simplification de la fonction onNodesChange pour éviter les boucles de mise à jour
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes(nds => {
-      const newNodes = applyNodeChanges(changes, nds);
-      
-      // N'arrondir que si les positions ont réellement changé
-      return newNodes.map(node => {
-        const roundedX = Math.round(node.position.x);
-        const roundedY = Math.round(node.position.y);
-        
-        // Vérifier si l'arrondi est nécessaire
-        if (roundedX === node.position.x && roundedY === node.position.y) {
-          return node; // Pas besoin d'arrondir, évite la boucle infinie
-        }
-        
-        return {
-          ...node,
-          position: {
-            x: roundedX,
-            y: roundedY
-          }
-        };
-      });
+    // Utiliser requestAnimationFrame pour éviter les mises à jour trop fréquentes
+    requestAnimationFrame(() => {
+      setNodes((nds) => applyNodeChanges(changes, nds));
     });
   }, [setNodes]);
 
@@ -197,8 +180,9 @@ function Flow() {
                 evt.preventDefault();
                 setSelectedEdge(edge.id);
               }, [setSelectedEdge])}
-              onNodeClick={useCallback((evt: { preventDefault: () => void; }, node: React.SetStateAction<Node | null>) => {
+              onNodeClick={useCallback((evt: { preventDefault: () => void; }, node: Node) => {
                 evt.preventDefault();
+                console.log('Noeud sélectionné:', node);
                 setSelectedNode(node);
               }, [setSelectedNode])}
               onPaneClick={useCallback((evt: { preventDefault: () => void; }) => {
@@ -206,6 +190,7 @@ function Flow() {
                 setSelectedNode(null);
                 setSelectedEdge(null);
               }, [setSelectedNode, setSelectedEdge])}
+              defaultViewport={{ x: 0, y: 0, zoom: 0.9 }}
               fitView
             >
               <Background

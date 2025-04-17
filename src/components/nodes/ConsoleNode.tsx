@@ -1,5 +1,6 @@
 import { Handle, NodeProps, Position } from 'reactflow';
 import { Terminal } from 'lucide-react';
+import { useRef, useEffect } from 'react';
 import useWorkflowStore from '../../store/workflowStore';
 import useConsoleStore from '../../store/consoleStore';
 import { NodeWrapper } from '../NodeWrapper';
@@ -17,6 +18,16 @@ export const ConsoleNode = ({ id, data }: NodeProps<ConsoleNodeData>) => {
 
   // Récupérer le contenu depuis consoleStore
   const content = useConsoleStore((state) => state.getConsoleContent(id));
+  
+  // Référence pour le conteneur de la console
+  const consoleContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Défilement automatique vers le bas lorsque le contenu change
+  useEffect(() => {
+    if (consoleContainerRef.current) {
+      consoleContainerRef.current.scrollTop = consoleContainerRef.current.scrollHeight;
+    }
+  }, [content]);
 
   return (
     <NodeWrapper nodeId={id} isExecuting={isExecuting} status={status}>
@@ -29,7 +40,10 @@ export const ConsoleNode = ({ id, data }: NodeProps<ConsoleNodeData>) => {
             <div className="text-[7px] font-medium text-gray-900 dark:text-gray-100 truncate leading-none">{data.label}</div>
           </div>
           <div className="mt-1">
-            <div className="text-[6px] text-gray-600 dark:text-gray-400 p-1 bg-gray-50 dark:bg-gray-900/50 rounded outline outline-1 outline-emerald-400/20 min-h-[20px] max-h-[40px] overflow-y-auto font-mono whitespace-pre">
+            <div 
+              ref={consoleContainerRef}
+              className="text-[6px] text-gray-600 dark:text-gray-400 p-1 bg-gray-50 dark:bg-gray-900/50 rounded outline outline-1 outline-emerald-400/20 min-h-[20px] max-h-[40px] overflow-y-auto font-mono whitespace-pre"
+            >
               {content}
             </div>
           </div>
